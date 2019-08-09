@@ -1,0 +1,2 @@
+FROM zokrates/zokrates
+COPY ./ ./
