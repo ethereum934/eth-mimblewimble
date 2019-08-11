@@ -1,0 +1,54 @@
+import "ecc/babyjubjubParams.code" as context
+import "ecc/edwardsOnCurve.code" as onCurve
+import "utils/pack/pack256.code" as pack
+import "../circuits/ecMul.code" as ecMul
+import "../circuits/G.code" as G
+import "../circuits/H.code" as H
+import "../circuits/safeAdd.code" as safeAdd
+import "../circuits/pedersenCommitment.code" as pedersenCommitment
+import "../circuits/challenge.code" as challenge
+
+
+def testSafeAdd() -> (field):
+  field result = safeAdd(1,2)
+  result == 3
+  // TODO Add error case tests
+  // Currently, ZoKrates does not support test tool for assertion error
+  return 1
+
+def testECMul() -> (field):
+  field[2] G = G()
+  field[2] H = H()
+  context = context()
+  field[2] rG1 = ecMul(1,G)
+  field[2] rG2 = ecMul(2,G)
+  field[2] vH1 = ecMul(3,H)
+  field[2] vH2 = ecMul(4,H)
+  1 == onCurve(rG1, context)
+  1 == onCurve(rG2, context)
+  1 == onCurve(vH1, context)
+  1 == onCurve(vH2, context)
+  return 1
+
+def testPedersenCommitment() -> (field):
+  context = context()
+  field[2] pedersen1 = pedersenCommitment(1, 2)
+  field[2] pedersen2 = pedersenCommitment(3, 8)
+  1 == onCurve(pedersen1, context)
+  1 == onCurve(pedersen2, context)
+  return 1
+
+def testChallenge() -> (field):
+  field[256] challenge1 = challenge([1,2], [3,4], 5, 6)
+  field[256] challenge2 = challenge([1,2], [3,4], 5, 7)
+  return if pack(challenge1) == pack(challenge2) then 0 else 1 fi
+
+def testTransaction() ->(field):
+  return 1
+
+def main() -> (field):
+  1 == testSafeAdd()
+  1 == testECMul()
+  1 == testPedersenCommitment()
+  1 == testCreateChallenge()
+  return 1

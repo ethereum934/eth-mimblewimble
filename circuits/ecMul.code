@@ -1,0 +1,7 @@
+import "ecc/babyjubjubParams.code" as context
+import "ecc/edwardsScalarMult.code" as edwardsScalarMult
+import "utils/pack/nonStrictUnpack256.code" as unpack
+
+def main(field scalar, field[2] ecPoint) -> (field[2]):
+  context = context()
+  return edwardsScalarMult(unpack(scalar), ecPoint, context) 

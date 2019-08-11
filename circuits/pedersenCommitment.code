@@ -1,0 +1,11 @@
+import "./G.code" as G
+import "./H.code" as H
+import "./ecMul.code" as ecMul
+import "./ecAdd.code" as ecAdd
+
+def main(field r, field v) -> (field[2]):
+  field[2] rG  = ecMul(r, G())
+  field[2] vH  = ecMul(v, H())
+  field[2] pedersenCommitment = ecAdd(rG, vH)
+  return pedersenCommitment
+

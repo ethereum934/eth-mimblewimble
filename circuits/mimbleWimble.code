@@ -1,0 +1,35 @@
+import "./safeAdd.code" as add
+import "./pedersenCommitment.code" as pedersenCommitment
+
+def main(\
+	field[128] uOfinputTXOs, field[128] vOfinputTXOs, field[2] sentTXO, field[2] changeTXO,   \
+	private field[128] rInputs, private field[128] vInputs, \
+	private field rSent, private field vSent, \
+	private field rChange, private field vChange, \
+	field fee \
+) -> (field):
+  
+  // Process input TXOs
+	field totalInput = 0
+	field rInput = 0
+	field vInput = 0
+	for field i in 0..128 do
+		rInput = rInputs[i]
+		vInput = vInputs[i]
+  	// Calculate input sum
+		totalInput = add(totalInput, vInput)
+  	// Check pedersen commitment
+    field[2] commitment = if rInput == 0 then [0, 0] else pedersenCommitment(rInput, vInput) fi
+    commitment == [uOfinputTXOs[i], vOfinputTXOs[i]]
+	endfor
+	
+  // Process output TXOs
+  // Calculate output sum
+	field totalOutput = add(vSent, vChange)
+  // Check pedersen commitment
+	pedersenCommitment(rSent, vSent) == sentTXO
+	pedersenCommitment(rChange, vChange) == changeTXO
+
+  /** Check zero sum */
+	totalInput == add(totalOutput, fee)
+	return 1

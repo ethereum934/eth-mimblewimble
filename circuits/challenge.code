@@ -1,0 +1,17 @@
+import "ecc/babyjubjubParams.code" as context
+import "utils/pack/nonStrictUnpack256.code" as unpack
+import "ecc/edwardsCompress.code" as edwardsCompress
+import "./pedersenHash1536.code" as pedersenHash1536
+
+def main(field[2] publicExcess, field[2] publicNonce, field fee, field metadata) -> (field[256]):
+  context = context()
+  field[256] arrPE0 = unpack(publicExcess[0])
+  field[256] arrPE1 = unpack(publicExcess[1])
+  field[256] arrPN0 = unpack(publicNonce[0])
+  field[256] arrPN1 = unpack(publicNonce[1])
+  field[256] arrFee = unpack(fee)
+  field[256] arrMD =  unpack(metadata)
+  field[2] e = pedersenHash1536([...arrPE0, ...arrPE1, ...arrPN0, ...arrPN1, ...arrFee, ...arrMD])
+  field[256] challenge = edwardsCompress(e, context)
+  return challenge
+

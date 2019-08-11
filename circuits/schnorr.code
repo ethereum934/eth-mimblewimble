@@ -1,0 +1,8 @@
+import "./ecMul.code" as ecMul
+import "./ecAdd.code" as ecAdd
+import "./G.code" as G
+
+def main(field signature, field e, field[2] publicExcess, field[2] publicNonce) -> (field[2]):
+  ecMul(signature, G()) == ecAdd(publicNonce, ecMul(e, publicExcess))
+  return 1
+
