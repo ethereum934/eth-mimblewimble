@@ -2,3 +2,4 @@ _deps
 .idea/
 **/node_modules
 **/build
+.temp/

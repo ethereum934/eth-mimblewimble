@@ -1,12 +1,14 @@
 import "ecc/babyjubjubParams.code" as context
 import "ecc/edwardsOnCurve.code" as onCurve
 import "utils/pack/pack256.code" as pack
+import "../circuits/ecAdd.code" as ecAdd
 import "../circuits/ecMul.code" as ecMul
-import "../circuits/G.code" as G
-import "../circuits/H.code" as H
+import "../circuits/constants/G.code" as G
+import "../circuits/constants/H.code" as H
 import "../circuits/safeAdd.code" as safeAdd
 import "../circuits/pedersenCommitment.code" as pedersenCommitment
 import "../circuits/challenge.code" as challenge
+import "../circuits/transaction.code" as transaction
 
 
 def testSafeAdd() -> (field):
@@ -39,16 +41,21 @@ def testPedersenCommitment() -> (field):
   return 1
 
 def testChallenge() -> (field):
-  field[256] challenge1 = challenge([1,2], [3,4], 5, 6)
-  field[256] challenge2 = challenge([1,2], [3,4], 5, 7)
-  return if pack(challenge1) == pack(challenge2) then 0 else 1 fi
+  field challenge1 = pack(challenge([1,2], [3,4], 5, 6))
+  field challenge2 = pack(challenge([1,2], [3,4], 5, 7))
+  return if challenge1 == challenge2 then 0 else 1 fi
 
 def testTransaction() ->(field):
+  // Generated sample data with pycrypto
   return 1
 
-def main() -> (field):
-  1 == testSafeAdd()
-  1 == testECMul()
-  1 == testPedersenCommitment()
-  1 == testCreateChallenge()
-  return 1
+def main() -> (field[2]):
+  // 1 == testSafeAdd()
+  // 1 == testECMul()
+  // 1 == testPedersenCommitment()
+  // 1 == testCreateChallenge()
+  // 1 == testTransaction()
+  field a = 3
+  field b = 8 - 3
+  //return ecAdd(ecMul(a, G()), ecMul(b, G()))
+  return [1,3]

@@ -1,8 +1,14 @@
-import "./ecMul.code" as ecMul
+import "ecc/babyjubjubParams.code" as context
+import "ecc/edwardsScalarMult.code" as edwardsScalarMult
+import "utils/pack/nonStrictUnpack256.code" as unpack
+import "./ecStrictMul.code" as ecStrictMul
 import "./ecAdd.code" as ecAdd
-import "./G.code" as G
+import "./constants/ZERO.code" as ZERO
+import "./constants/G.code" as G
 
-def main(field signature, field e, field[2] publicExcess, field[2] publicNonce) -> (field[2]):
-  ecMul(signature, G()) == ecAdd(publicNonce, ecMul(e, publicExcess))
+def main(field[2] signature, field[256] e, field[2] publicExcess, field[2] publicNonce) -> (field):
+  context = context()
+  field[2] eR = edwardsScalarMult(e, publicExcess, context)
+  ecStrictMul(signature, G()) == ecAdd(publicNonce, eR)
   return 1
 

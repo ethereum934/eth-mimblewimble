@@ -1,0 +1,3 @@
+// Basepoint
+def main() -> (field[2]):
+  return [0, 1]

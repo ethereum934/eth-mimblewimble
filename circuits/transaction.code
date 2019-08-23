@@ -1,12 +1,13 @@
 import "ecc/babyjubjubParams.code" as context
 import "./mimbleWimble.code" as mimbleWimble
-import "./challenge.code as challenge
-import "./schnorr.code as schnorr
+import "./challenge.code" as challenge
+import "./schnorr.code" as schnorr
 
 def main(\
-	field[2] publicExcess, field[2] publicNonce, field fee, field metadata, field signature, \
-	field[128] uOfinputTXOs, field[128] vOfinputTXOs, field[2] sentTXO, field[2] changeTXO,   \
-	private field[128] rInputs, private field[128] vInputs, \
+	field[2] publicExcess, field[2] publicNonce, field fee, field metadata, \
+	field[2] inputTXO, field[2] sentTXO, field[2] changeTXO,   \
+	field[2] signature, \
+	private field rInput, private field vInput, \
 	private field rSent, private field vSent, \
 	private field rChange, private field vChange \
 ) -> (field):
@@ -17,6 +18,5 @@ def main(\
   1 == schnorr(signature, e, publicExcess, publicNonce)
 
   // Secure the transaction follows the Mimble-Wimble protocol
-  1 == mimbleWimble(uOfinputTXOs, vOfinputTXOs, sentTXO, changeTXO, rInputs, vInputs, rSent, vSent, rChange, vChange, fee)
-	return 1
-
+  1 == mimbleWimble(inputTXO, sentTXO, changeTXO, rInput, vInput, rSent, vSent, rChange, vChange, fee)
+  return 1
