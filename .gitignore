@@ -3,3 +3,8 @@ _deps
 **/node_modules
 **/build
 .temp/
+*.pyc
+__pycache__
+dist/
+*.egg-info
+.venv
