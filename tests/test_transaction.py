@@ -2,7 +2,7 @@ import unittest
 from eth_account import Account
 
 from py934.constant import H
-from py934.transaction import TxSend, Output, Field, Request, TxReceive
+from py934.mimblewimble import TxSend, Output, Field, Request, TxReceive
 
 
 class Secrets:

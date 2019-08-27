@@ -43,3 +43,4 @@ class Field(FR):
     def random(cls, start=1, end=SNARK_SCALAR_FIELD):
         assert 0 <= start and end <= SNARK_SCALAR_FIELD
         return cls(random.randint(start, SNARK_SCALAR_FIELD))
+

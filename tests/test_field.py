@@ -3,7 +3,7 @@ import unittest
 from ethsnarks.field import FR_ORDER
 
 from py934.constant import G
-from py934.transaction import Field
+from py934.mimblewimble import Field
 
 
 class TestField(unittest.TestCase):

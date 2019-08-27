@@ -6,7 +6,7 @@ from ethsnarks.pedersen import pedersen_hash_bits
 from ethsnarks.jubjub import Point
 from bitstring import BitArray
 
-from py934.field import Field
+from py934.jubjub import Field
 from .constant import G, H
 
 
@@ -51,21 +51,22 @@ class Transaction:
         assert hh_inputs + hh_excess == hh_changes + hh_outputs + fee * H
 
         # check Schnorr signature
-        challenge = self.create_challenge(signature.R, hh_excess, fee, metadata)
+        challenge = self.create_challenge(hh_excess, signature.R, fee, metadata)
         assert signature.s * G == signature.R + challenge * hh_excess
 
     @property
     def challenge(self):
-        challenge = self.create_challenge(self.signature.R, self.hh_excess, self.fee, self.metadata)
+        challenge = self.create_challenge(self.hh_excess, self.signature.R, self.fee, self.metadata)
         return challenge
 
     @classmethod
-    def create_challenge(cls, hh_sig_salt: Point, hh_excess: Point, fee: Field, metadata: Field):
+    def create_challenge(cls, hh_excess: Point, hh_sig_salt: Point, fee: Field, metadata: Field):
         concatenated_source = \
-            BitArray(bin=bin(int.from_bytes(hh_sig_salt.compress(), 'little'))) + \
-            BitArray(bin=bin(int.from_bytes(hh_excess.compress(), 'little'))) + \
+            BitArray(hex=hh_excess.compress().hex()) + \
+            BitArray(hex=hh_sig_salt.compress().hex()) + \
             fee.bits() + \
             metadata.bits()
+        assert len(concatenated_source) == 1020
         hashed_point = pedersen_hash_bits(b'934', concatenated_source)
         hashed = int.from_bytes(hashed_point.compress(), 'little')
         return Field(hashed)
@@ -401,8 +402,8 @@ class TxSend:
         request = self.request
         response = self.response
         return Transaction.create_challenge(
-            request.hh_sig_salt + response.signature.R,
             request.hh_excess + response.hh_excess,
+            request.hh_sig_salt + response.signature.R,
             request.fee, request.metadata
         )
 
@@ -438,8 +439,8 @@ class TxReceive:
     @property
     def challenge(self):
         challenge = Transaction.create_challenge(
-            self.request.hh_sig_salt + self.sig_salt * G,
             self.request.hh_excess + self.output.public_key,
+            self.request.hh_sig_salt + self.sig_salt * G,
             self.request.fee, self.request.metadata
         )
         return challenge

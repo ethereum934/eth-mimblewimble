@@ -92,7 +92,10 @@ clear-container:
 pyenv:
 	@pip3 install -q virtualenv
 	@[[ -d .venv ]] || virtualenv .venv -p python3
-	@source .venv/bin/activate; pip3 install -r requirements.txt
+	@source .venv/bin/activate; pip3 install -q -r requirements.txt
+
+pytest: pyenv
+	@source .venv/bin/activate; python -m unittest tests/test*.py
 
 
 # -------------------- Commands for CI/CI -------------------- #
