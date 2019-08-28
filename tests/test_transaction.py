@@ -1,7 +1,6 @@
 import unittest
 from eth_account import Account
 
-from py934.constant import H
 from py934.mimblewimble import TxSend, Output, Field, Request, TxReceive
 
 
@@ -22,9 +21,10 @@ class TestTransactions(unittest.TestCase):
         sender_sig_salt = Field.random()
         outputs = Output.new(value)
         receiver_sig_salt = Field.random()
+        metadata = "Ethereum934"
         self.shared_secrets.value = value
         self.shared_secrets.fee = fee
-        self.shared_secrets.metadata = 'Ethereum934'
+        self.shared_secrets.metadata = metadata
         self.sender_secrets.inputs = inputs
         self.sender_secrets.changes = changes
         self.sender_secrets.sig_salt = sender_sig_salt

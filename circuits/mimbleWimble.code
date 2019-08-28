@@ -1,19 +1,8 @@
-import "./safeAdd.code" as add
-import "./pedersenCommitment.code" as pedersenCommitment
+import "./constants/H.code" as H
+import "./ecMul.code" as ecMul
+import "./ecAdd.code" as ecAdd
 
-def main(\
-	field[2] inputTXO, field[2] sentTXO, field[2] changeTXO,   \
-	private field rInput, private field vInput, \
-	private field rSent, private field vSent, \
-	private field rChange, private field vChange, \
-	field fee \
-) -> (field):
-  // Check pedersen commitment
-  pedersenCommitment(rInput, vInput) == inputTXO
-  pedersenCommitment(rSent, vSent) == sentTXO
-  pedersenCommitment(rChange, vChange) == changeTXO
-
+def main(private field[2] inputTXO, field[2] excess, field[2] outputTXO, field[2] changeTXO, field fee) -> (field):
   // Check zero sum
-  field totalOutput = add(vSent, vChange)
-  rInput == add(totalOutput, fee)
+  ecAdd(inputTXO, excess) == ecAdd(ecAdd(outputTXO, changeTXO), ecMul(fee, H()))
   return 1

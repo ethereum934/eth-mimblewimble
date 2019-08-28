@@ -5,12 +5,11 @@ import "ecc/edwardsCompress.code" as edwardsCompress
 import "PACKING/split" as split
 import "./challengeHasher.code" as challengeHasher
 
-def main(field[2] excess, field[2] sigHiding, field fee, field metadata) -> (field[256]):
+def main(field excessY, field sigPointY, field fee, field metadata) -> (field):
   context = context()
-  field[256] arrExcess = edwardsCompress(excess, context)
-  field[256] arrSigHiding = edwardsCompress(sigHiding, context)
+  field[254] arrExcess = split(excessY)
+  field[254] arrSigPoint = split(sigPointY)
   field[254] arrFee = split(fee)
   field[254] arrMetaData =  split(metadata)
-  field[2] e = challengeHasher([...arrExcess, ...arrSigHiding, ...arrFee, ...arrMetaData])
-  field[256] challenge = edwardsCompress(e, context)
-  return challenge
+  field[2] e = challengeHasher([...arrExcess, ...arrSigPoint, ...arrFee, ...arrMetaData, 0])
+  return e[1]

@@ -14,15 +14,15 @@ def to_256_bits(val: int):
 
 
 if __name__ == "__main__":
-    hasher = PedersenHasher(b'934')
+    hasher = PedersenHasher(b'Ethereum934')
     # To make concatenated length 1524 bit
     concatenated_source = \
-        to_256_bits(3) + \
-        to_256_bits(4) + \
+        to_254_bits(3) + \
+        to_254_bits(4) + \
         to_254_bits(5) + \
         to_254_bits(6)
     hashed_bytes = hasher.hash_bits(concatenated_source)
-    hashed = int.from_bytes(hashed_bytes.compress(), 'little')
+    hashed = int.from_bytes(hashed_bytes.compress(), 'big')
     # print(hasher.dsl_code, end='') # This generates pedersen hash circuit code
     hasher.write_dsl_code('challengeHasher.code')
     print("Saved challengeHasher.code")

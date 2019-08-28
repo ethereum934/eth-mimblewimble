@@ -1,5 +1,5 @@
 import random
-from ethsnarks.field import SNARK_SCALAR_FIELD, FR
+from ethsnarks.field import SNARK_SCALAR_FIELD, FR, FQ
 from ethsnarks.jubjub import Point
 
 
@@ -44,3 +44,8 @@ class Field(FR):
         assert 0 <= start and end <= SNARK_SCALAR_FIELD
         return cls(random.randint(start, SNARK_SCALAR_FIELD))
 
+    def to_fq2(self):
+        if self.n > SNARK_SCALAR_FIELD:
+            return [FQ(SNARK_SCALAR_FIELD), FQ(self.n)]
+        else:
+            return [FQ(self.n), FQ(0)]

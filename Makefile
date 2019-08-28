@@ -23,7 +23,7 @@ test: container-circuit clear-container
 		--name zokrates-tmp \
 		ethereum-mw-zokrates \
 		/bin/bash -c "\
-		./zokrates compile -i tests/unitTest.code;\
+		./zokrates compile -i tests/circuits/unitTest.code;\
 		./zokrates setup;\
 		./zokrates compute-witness;\
 		./zokrates generate-proof;\
@@ -96,6 +96,9 @@ pyenv:
 
 pytest: pyenv
 	@source .venv/bin/activate; python -m unittest tests/test*.py
+
+sample_tx: pyenv
+	@source .venv/bin/activate; python utils/sample_tx.py
 
 
 # -------------------- Commands for CI/CI -------------------- #

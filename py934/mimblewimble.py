@@ -4,14 +4,13 @@ from typing import List
 from ethsnarks.field import SNARK_SCALAR_FIELD
 from ethsnarks.pedersen import pedersen_hash_bits
 from ethsnarks.jubjub import Point
-from bitstring import BitArray
 
 from py934.jubjub import Field
 from .constant import G, H
 
 
 class Signature:
-    def __init__(self, s, R):
+    def __init__(self, s: Field, R: Point):
         self.s = s
         self.R = R
 
@@ -27,11 +26,39 @@ class Kernel:
         self.fee = fee
         self.metadata = metadata
 
+    def __str__(self):
+        return """
+        excess:
+        {}
+        signature (scalar):
+        {}
+        signature (point):
+        {}
+        fee:
+        {},
+        metadata:
+        {}
+        """.format(self.hh_excess, self.signature.s.to_fq2(), self.signature.R, self.fee, self.metadata)
+
 
 class Body:
     def __init__(self, hh_inputs, hh_outputs: List[Point]):
         self.hh_inputs = hh_inputs
         self.hh_outputs = hh_outputs
+
+    def __str__(self):
+        return """
+        inputs: {}
+        outputs: 
+        {} 
+        {}
+        """.format(self.hh_inputs, self.hh_outputs[0], self.hh_outputs[1])
+
+
+def compress(self):
+    x = self.x.n
+    y = self.y.n
+    return int.to_bytes(y | ((x & 1) << 255), 32, "little")
 
 
 class Transaction:
@@ -52,24 +79,21 @@ class Transaction:
 
         # check Schnorr signature
         challenge = self.create_challenge(hh_excess, signature.R, fee, metadata)
+        self.challenge = challenge
         assert signature.s * G == signature.R + challenge * hh_excess
 
-    @property
-    def challenge(self):
-        challenge = self.create_challenge(self.hh_excess, self.signature.R, self.fee, self.metadata)
-        return challenge
-
     @classmethod
-    def create_challenge(cls, hh_excess: Point, hh_sig_salt: Point, fee: Field, metadata: Field):
+    def create_challenge(cls, hh_excess: Point, hh_sig_salt: Point, fee: Field, metadata: Field) -> Field:
+        # Circuit uses big-endian while ethsnarks lib uses little-endian
         concatenated_source = \
-            BitArray(hex=hh_excess.compress().hex()) + \
-            BitArray(hex=hh_sig_salt.compress().hex()) + \
+            metadata.bits() + \
             fee.bits() + \
-            metadata.bits()
-        assert len(concatenated_source) == 1020
-        hashed_point = pedersen_hash_bits(b'934', concatenated_source)
-        hashed = int.from_bytes(hashed_point.compress(), 'little')
-        return Field(hashed)
+            hh_sig_salt.y.bits() + \
+            hh_excess.y.bits()
+        concatenated_source.reverse()
+        assert len(concatenated_source) == 1016
+        hashed_point = pedersen_hash_bits(b'Ethereum934', concatenated_source)
+        return Field(hashed_point.y.n)
 
 
 class Output:

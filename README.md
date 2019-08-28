@@ -10,6 +10,18 @@ Install docker and GNU Make
 
 ## Command
 
+#### Circuit Test 
+This will run tests/circuits/unitTest.code 
+```shell
+make test
+```
+
+#### Python library Test 
+This will run `python -m unittest tests/test*.py`
+```shell
+make pytest
+```
+
 #### Make verifier contract
 
 ```shell
