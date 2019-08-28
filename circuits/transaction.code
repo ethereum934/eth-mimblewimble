@@ -1,4 +1,8 @@
 import "ecc/babyjubjubParams.code" as context
+import "./ecMul.code" as ecMul
+import "./ecAdd.code" as ecAdd
+import "./constants/G.code" as G
+import "./constants/H.code" as H
 import "./mimbleWimble.code" as mimbleWimble
 import "./challenge.code" as challenge
 import "./schnorr.code" as schnorr
@@ -7,8 +11,14 @@ import "./constants/RANGE.code" as RANGE
 
 def main(\
 	field[2] excess, field fee, field metadata, field[2] sigScalar, field[2] sigPoint, \
-	private field[2] inputTXO, field[2] outputTXO, field[2] changeTXO \
+	field spentTag, field[2] outputTXO, field[2] changeTXO, \
+	private field inputR, private field inputV \
 ) -> (field):
+  // Retrieve constants
+  RANGE = RANGE()
+  G = G()
+  H = H()
+
   // Get transaction hash
   field e = challenge(excess[1], sigPoint[1], fee, metadata)
 
@@ -16,8 +26,16 @@ def main(\
   1 == schnorr(sigScalar, sigPoint, e, excess)
 
   // Fee should be less than 2^52
-  1 == lessThan(fee, RANGE())
+  1 == lessThan(fee, RANGE)
 
-  // Secure that this transaction follows the Mimble-Wimble protocol
+  // Get input TXO from r,v
+  field[2] inputTXO = ecAdd(ecMul(inputR, G), ecMul(inputV, H))
+
+  // Prove that the spentTag is derived from the inputKey
+  // Can not create multiple spent tags from an input txo
+  field[2] calculatedTag = ecMul(inputR, inputTXO)
+  spentTag == calculatedTag[1]
+
+  // Secure that this transaction follows the MimbleWimble protocol
   1 == mimbleWimble(inputTXO, excess, outputTXO, changeTXO, fee)
   return 1

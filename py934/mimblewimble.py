@@ -1,3 +1,4 @@
+import docker
 import random
 from typing import List
 
@@ -17,6 +18,82 @@ class Signature:
     def __add__(self, other):
         assert isinstance(self, Signature)
         return Signature(self.s + other.s, self.R + other.R)
+
+
+class Output:
+    def __init__(self, hh: Point):
+        assert hh.valid()
+        self.hh = hh
+
+    @property
+    def public_key(self) -> Point:
+        if self.r is not None:
+            return self.r * G
+        elif self.v is not None:
+            return self.hh - self.v * H
+        else:
+            raise ValueError("Does not have the private key")
+
+    @property
+    def private_key(self) -> Field:
+        if self.r is not None:
+            return self.r
+        else:
+            raise ValueError("Does not have private key")
+
+    def __set_r(self, r: Field):
+        self.r = r if isinstance(r, Field) else Field(int(r))
+        assert self.r.n < SNARK_SCALAR_FIELD, "For light calculation, only use elements less than SNARK FIELD"
+        if hasattr(self, 'v'):
+            assert self.r * G + self.v * H == self.hh
+
+    def __set_v(self, v: Field):
+        self.v = v if isinstance(v, Field) else Field(int(v))
+        assert self.v.n < SNARK_SCALAR_FIELD, "For light calculation, only use elements less than SNARK FIELD"
+        if hasattr(self, 'r'):
+            assert self.r * G + self.v * H == self.hh
+
+    def __str__(self):
+        return """
+        r: {}
+        v: {}
+        commitment: ({}, {})
+        """.format(self.r, self.v, self.hh.x, self.hh.y)
+
+    @classmethod
+    def new(cls, v: Field):
+        # For a light-weight zk proof, pick random value between the zk SNARKs scalar field
+        r = Field(random.randint(1, SNARK_SCALAR_FIELD))
+        pedersen_commitment = r * G + v * H
+        txo = cls(pedersen_commitment)
+        txo.__set_r(r)
+        txo.__set_v(v)
+        return txo
+
+    @classmethod
+    def from_secrets(cls, r: int, v: int):
+        r = Field(r)
+        v = Field(v)
+        pedersen_commitment = r * G + v * H
+        txo = cls(pedersen_commitment)
+        txo.__set_r(r)
+        txo.__set_v(v)
+        return txo
+
+    @classmethod
+    def from_public_key_with_value(cls, rG: Point, v: Field):
+        assert v.n <= SNARK_SCALAR_FIELD
+        pedersen_commitment = rG + v * H
+        txo = cls(pedersen_commitment)
+        txo.__set_v(v)
+        return txo
+
+    @classmethod
+    def from_compressed(cls, compressed: int):
+        return cls(Point.decompress(compressed))
+
+    def compress(self):
+        return self.hh.compress()
 
 
 class Kernel:
@@ -55,32 +132,22 @@ class Body:
         """.format(self.hh_inputs, self.hh_outputs[0], self.hh_outputs[1])
 
 
-def compress(self):
-    x = self.x.n
-    y = self.y.n
-    return int.to_bytes(y | ((x & 1) << 255), 32, "little")
+class Proof:
+    def __init__(self, range_proof, mw_proof):
+        self.range = range_proof
+        self.mw = mw_proof
 
 
 class Transaction:
-    def __init__(self,
-                 hh_excess: Point,
-                 signature: Signature,
-                 fee: Field,
-                 metadata: Field,
-                 hh_inputs: Point,
-                 hh_changes: Point,
-                 hh_outputs: Point
-                 ):
-        self.kernel = Kernel(hh_excess, signature, fee, metadata)
-        self.body = Body(hh_inputs, [hh_changes, hh_outputs])
+    def __init__(self, kernel: Kernel, body: Body, proof: Proof):
+        self.kernel = kernel
+        self.body = body
+        self.proof = proof
 
-        # check MimbleWimble
-        assert hh_inputs + hh_excess == hh_changes + hh_outputs + fee * H
-
-        # check Schnorr signature
-        challenge = self.create_challenge(hh_excess, signature.R, fee, metadata)
-        self.challenge = challenge
-        assert signature.s * G == signature.R + challenge * hh_excess
+    @property
+    def challenge(self):
+        return self.create_challenge(self.kernel.hh_excess, self.kernel.signature.R, self.kernel.fee,
+                                     self.kernel.metadata)
 
     @classmethod
     def create_challenge(cls, hh_excess: Point, hh_sig_salt: Point, fee: Field, metadata: Field) -> Field:
@@ -96,96 +163,58 @@ class Transaction:
         return Field(hashed_point.y.n)
 
 
-class Output:
-    def __init__(self, pedersen_commitment: Point):
-        assert pedersen_commitment.valid()
-        self.pedersen_commitment = pedersen_commitment
+class ExtendedTransaction:
+    def __init__(self,
+                 hh_excess: Point,
+                 signature: Signature,
+                 fee: Field,
+                 metadata: Field,
+                 hh_changes: Point,
+                 hh_outputs: Point,
+                 inputs: Output,  # This value will be hidden to others
+                 ):
+        spent_tag = Field((inputs.r * inputs.hh).y)
+        self.kernel = Kernel(hh_excess, signature, fee, metadata)
+        self.body = Body(spent_tag, [hh_changes, hh_outputs])
+        self.secret = inputs
+
+        # check MimbleWimble
+        assert inputs.hh + hh_excess == hh_changes + hh_outputs + fee * H
+
+        # check Schnorr signature
+        challenge = self.create_challenge(hh_excess, signature.R, fee, metadata)
+        self.challenge = challenge
+        assert signature.s * G == signature.R + challenge * hh_excess
+        self._proof = None
 
     @property
-    def public_key(self) -> Point:
-        if self.r is not None:
-            return self.r * G
-        elif self.v is not None:
-            return self.pedersen_commitment - self.v * H
-        else:
-            raise ValueError("Does not have the private key")
+    def proof(self):
+        if self._proof is not None:
+            return self._proof
 
-    @property
-    def private_key(self) -> Field:
-        if self.r is not None:
-            return self.r
-        else:
-            raise ValueError("Does not have private key")
+        client = docker.from_env()
+        range_proof_1 = client.containers.run("py934/range", "{} {} {}".format(self.body.hh_outputs[0]))
+        range_proof_2 = client.containers.run("py934/range", "{} {} {}".format(self.body.hh_outputs[1]))
+        mw_proof = client.containers.run("py934/mimblewimble", "{} {} {}")
+        range_proof = None
+        mw_proof = None
+        self._proof = Proof(range_proof, mw_proof)
+        return self._proof
 
-    def __set_r(self, r: Field):
-        self.r = r if isinstance(r, Field) else Field(int(r))
-        assert self.r.n < SNARK_SCALAR_FIELD, "For light calculation, only use elements less than SNARK FIELD"
-        if hasattr(self, 'v'):
-            assert self.r * G + self.v * H == self.pedersen_commitment
-
-    def __set_v(self, v: Field):
-        self.v = v if isinstance(v, Field) else Field(int(v))
-        assert self.v.n < SNARK_SCALAR_FIELD, "For light calculation, only use elements less than SNARK FIELD"
-        if hasattr(self, 'r'):
-            assert self.r * G + self.v * H == self.pedersen_commitment
-
-    def __str__(self):
-        return """
-        r: {}
-        v: {}
-        commitment: ({}, {})
-        """.format(self.r, self.v, self.pedersen_commitment.x, self.pedersen_commitment.y)
-
-    @classmethod
-    def new(cls, v: Field):
-        # For a light-weight zk proof, pick random value between the zk SNARKs scalar field
-        r = Field(random.randint(1, SNARK_SCALAR_FIELD))
-        pedersen_commitment = r * G + v * H
-        txo = cls(pedersen_commitment)
-        txo.__set_r(r)
-        txo.__set_v(v)
-        return txo
-
-    @classmethod
-    def from_secrets(cls, r: int, v: int):
-        r = Field(r)
-        v = Field(v)
-        pedersen_commitment = r * G + v * H
-        txo = cls(pedersen_commitment)
-        txo.__set_r(r)
-        txo.__set_v(v)
-        return txo
-
-    @classmethod
-    def from_public_key_with_value(cls, rG: Point, v: Field):
-        assert v.n <= SNARK_SCALAR_FIELD
-        pedersen_commitment = rG + v * H
-        txo = cls(pedersen_commitment)
-        txo.__set_v(v)
-        return txo
-
-    @classmethod
-    def from_compressed(cls, compressed: int):
-        return cls(Point.decompress(compressed))
-
-    def compress(self):
-        return self.pedersen_commitment.compress()
+    def export(self):
+        return Transaction(self.kernel, self.body, self.proof)
 
 
 class Request:
     def __init__(self,
                  value: Field,
                  fee: Field,
-                 hh_inputs: Point,
-                 hh_changes: Point,
                  hh_sig_salt: Point,
                  hh_excess: Point,
                  metadata: Field
                  ):
         self.value = value
         self.fee = fee
-        self.hh_inputs = hh_inputs
-        self.hh_changes = hh_changes
         self.hh_sig_salt = hh_sig_salt  # Sender's nonce k_s * G
         self.hh_excess = hh_excess  # (r_change - r_input) * G
         self.metadata = metadata
@@ -371,22 +400,22 @@ class TxSend:
     def builder(cls):
         return SendTxBuilder()
 
-    def __init__(self, value: Field, fee: Field, hh_inputs: Output, hh_changes: Output, metadata: Field,
+    def __init__(self, value: Field, fee: Field, inputs: Output, changes: Output, metadata: Field,
                  sig_salt: Field):
         self.value = value
         self.fee = fee
-        self.hh_inputs = hh_inputs
-        self.hh_changes = hh_changes
+        self.inputs = inputs
+        self.changes = changes
         self.metadata = metadata
         self.sig_salt = sig_salt
         self._request = None
         self._response = None
         self._builder = None
-        assert hh_inputs.v.n == value + fee + hh_changes.v.n, "Not enough input value"
+        assert inputs.v.n == value + fee + changes.v.n, "Not enough input value"
 
     @property
     def excess(self):
-        return self.hh_changes.r - self.hh_inputs.r
+        return self.changes.r - self.inputs.r
 
     @property
     def hh_excess(self):
@@ -404,8 +433,6 @@ class TxSend:
             self._request = Request(
                 self.value,
                 self.fee,
-                self.hh_inputs.pedersen_commitment,
-                self.hh_changes.pedersen_commitment,
                 self.hh_sig_salt,
                 self.hh_excess,
                 self.metadata
@@ -439,14 +466,14 @@ class TxSend:
     def transaction(self):
         assert self.response is not None, "You should merge response from the recipient first"
         aggregated_signature = self.signature + self.response.signature
-        return Transaction(
+        return ExtendedTransaction(
             self.request.hh_excess + self.response.hh_excess,
             aggregated_signature,
             self.fee,
             self.metadata,
-            self.request.hh_inputs,
-            self.request.hh_changes,
-            self.response.hh_outputs
+            self.changes.hh,
+            self.response.hh_outputs,
+            self.inputs  # Secret information
         )
 
 
@@ -475,4 +502,4 @@ class TxReceive:
 
     @property
     def response(self):
-        return Response(self.output.pedersen_commitment, self.output.public_key, self.signature)
+        return Response(self.output.hh, self.output.public_key, self.signature)
