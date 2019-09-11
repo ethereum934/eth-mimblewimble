@@ -1,0 +1,4 @@
+ethsnarks==0.0.1
+web3==5.0.1
+docker==4.0.2
+pre-commit==1.18.1
