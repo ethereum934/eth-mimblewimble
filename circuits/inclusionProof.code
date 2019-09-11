@@ -1,0 +1,3 @@
+def main(field root, field spentTag, private field[2] inputTXO, private field index, private field[256] paths) -> (field):
+  // Inclusion proof
+  return 1

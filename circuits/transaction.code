@@ -6,13 +6,14 @@ import "./constants/H.code" as H
 import "./mimbleWimble.code" as mimbleWimble
 import "./challenge.code" as challenge
 import "./schnorr.code" as schnorr
+import "./spentTag.code" as spentTag
 import "./lessThan.code" as lessThan
 import "./constants/RANGE.code" as RANGE
 
 def main(\
 	field[2] excess, field fee, field metadata, field[2] sigScalar, field[2] sigPoint, \
-	field spentTag, field[2] outputTXO, field[2] changeTXO, \
-	private field inputR, private field inputV \
+	field[2] tags, field[2] outputTXO, field[2] changeTXO, \
+	private field[2] myRandoms, private field[2] myValues \
 ) -> (field):
   // Retrieve constants
   RANGE = RANGE()
@@ -29,12 +30,18 @@ def main(\
   1 == lessThan(fee, RANGE)
 
   // Get input TXO from r,v
-  field[2] inputTXO = ecAdd(ecMul(inputR, G), ecMul(inputV, H))
+  field totalRandom = 0
+  field totalValue = 0
+  for field i in 0..2 do
+    // TXOs can be aggregated into one input TXO
+    totalRandom = if tags[i] == 0 then totalRandom  else totalRandom + myRandoms[i] fi
+    totalValue = if tags[i] == 0 then totalValue else totalValue + myValues[i] fi
+    // Prove that the spentTag is derived from the inputKey
+    tags[i] == if tags[i] == 0 then 0 else spentTag(myRandoms[i], myValues[i]) fi
+  endfor
 
-  // Prove that the spentTag is derived from the inputKey
-  // Can not create multiple spent tags from an input txo
-  field[2] calculatedTag = ecMul(inputR, inputTXO)
-  spentTag == calculatedTag[1]
+  field[2] inputTXO = ecAdd(ecMul(totalRandom, G), ecMul(totalValue, H))
+
 
   // Secure that this transaction follows the MimbleWimble protocol
   1 == mimbleWimble(inputTXO, excess, outputTXO, changeTXO, fee)

@@ -1,0 +1,32 @@
+import "PACKING/split" as split
+import "../constants/powerOfTwo16.code" as powerOfTwo16
+import "../ecMul.code" as ecMul
+
+def main(field position, field[2] item, field[16] xPeaks, field[16] yPeaks, field[16] xSiblings, field[16] ySiblings) -> (field):
+    two = powerOfTwo16()
+    field currentPeakHeight = 0
+    field coveredWidth = 0
+    field myPeakHeight = 0
+    field relativePosition = 0
+    field[2] myPeak = [0, 1]
+    for field i in 0..16 do
+        field peakWidth = if xPeaks[i] == 0 then 0 else two[15 - i] fi
+        coveredWidth = coveredWidth + peakWidth
+        myPeak = if (coveredWidth >= position && myPeakHeight == 0) then [xPeaks[i], yPeaks[i]] else myPeak fi
+        relativePosition = if (coveredWidth >= position && myPeakHeight == 0) then coveredWidth - position else relativePosition fi
+        myPeakHeight = if (coveredWidth >= position && myPeakHeight == 0) then 16 - i else myPeakHeight fi
+    endfor
+
+    field[254] splitWidth =  split(relativePosition)
+    field[16] sibMap = splitWidth[238..254]
+
+    field[2] leafNode = ecMul(position, item)
+    field[2] cursor = leafNode
+    for field i in 0..16 do
+        field rightSib = sibMap[15 - i]
+        field[2] rightNode = if rightSib == 1 then [xSiblings[i], ySiblings[i]] else cursor fi
+        field[2] leftNode = if rightSib == 0 then [xSiblings[i], ySiblings[i]] else cursor fi
+        cursor = ecMul(leftNode[1], rightNode)
+    endfor
+    cursor == myPeak
+    return 1

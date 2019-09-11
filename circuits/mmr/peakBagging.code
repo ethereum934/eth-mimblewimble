@@ -1,0 +1,14 @@
+import "PACKING/split" as split
+import "./to16bits.code" as to16bits
+import "../ecMul.code" as ecMul
+import "../constants/G.code" as G
+
+def main(field width, field[16] xPeaks, field[16] yPeaks) -> (field):
+    field[2] root = G()
+    for field i in 0..16 do
+        // Index starts from the right-most bit
+        field index = 15- i
+        root = ecMul(yPeaks[index], root)
+    endfor
+    root = ecMul(width, root)
+    return root[1]
