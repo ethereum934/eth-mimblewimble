@@ -75,10 +75,11 @@ class Output:
     def range_proof(self):
         if self._range_proof is not None:
             client = docker.from_env()
-            proof_bytes = client.containers.run("ethereum934/transaction-proof",
+            proof_bytes = client.containers.run("ethereum934/range-proof",
                                                 environment={"args": " ".join(map(str, [
                                                     self.r, self.v, self.tag
                                                 ]))})
+            client.close()
             proof = json.loads(proof_bytes.decode('utf-8'))
             self._range_proof = proof
 
@@ -180,14 +181,13 @@ class Transaction:
         inclusion_proofs = inclusion_proofs
 
         client = docker.from_env()
-        proof_bytes = client.containers.run("ethereum934/transaction-proof",
+        proof_bytes = client.containers.run("ethereum934/mimblewimble-proof",
                                             environment={"args": " ".join(map(str, [
                                                 kernel.hh_excess.x,
                                                 kernel.hh_excess.y,
                                                 kernel.fee,
                                                 kernel.metadata,
                                                 *kernel.signature.s.to_fq2(),
-                                                kernel.signature.s,
                                                 kernel.signature.R,
                                                 *body.hh_input_tags,
                                                 body.hh_outputs[0].x,
@@ -199,6 +199,7 @@ class Transaction:
                                                 inputs[0].v,
                                                 inputs[1].v
                                             ]))})
+        client.close()
         mw_proof = json.loads(proof_bytes.decode('utf-8'))
         return cls(kernel, body, range_proofs, inclusion_proofs, mw_proof)
 
@@ -239,12 +240,12 @@ class Request:
 
     @classmethod
     def deserialize(cls, serialized):
-        assert len(serialized) == 32 * 7
+        assert len(serialized) == 32 * 5
         value = Field(int.from_bytes(serialized[0:32], 'little'))
         fee = Field(int.from_bytes(serialized[32:64], 'little'))
-        sig_salt = Point.decompress(serialized[128:160])
-        excess = Point.decompress(serialized[160:192])
-        metadata = Field(int.from_bytes(serialized[192:224], 'little'))
+        sig_salt = Point.decompress(serialized[64:96])
+        excess = Point.decompress(serialized[96:128])
+        metadata = Field(int.from_bytes(serialized[128:160], 'little'))
         instance = cls(value, fee, sig_salt, excess, metadata)
         return instance
 
@@ -317,7 +318,7 @@ class SendTxBuilder:
 
     def change_txo(self, _change: Output):
         assert len(self._inputs) != 0
-        inflow = reduce((lambda val, txo: val + txo.v.n), self._inputs)
+        inflow = reduce((lambda val, txo: val + txo.v), self._inputs, 0)
         outflow = self._value + self._fee + _change.v.n
         assert inflow == outflow, "Total sum does not change"
         assert self._change is None, "Change TXO already exists"
@@ -409,13 +410,13 @@ class TxSend:
         self._request = None
         self._response = None
         self._builder = None
-        inflow = reduce((lambda val, txo: val + txo.v.n), self.inputs)
+        inflow = reduce((lambda val, txo: val + txo.v), self.inputs, 0)
         assert inflow == value + fee + change.v.n, "Not enough input value"
         # TODO : validate proofs in inclusion_proofs:
 
     @property
     def excess(self):
-        r_sum_of_inputs = reduce((lambda excess, txo: excess + txo.r), self.inputs)
+        r_sum_of_inputs = reduce((lambda excess, txo: excess + txo.r), self.inputs, 0)
         return self.change.r - r_sum_of_inputs
 
     @property

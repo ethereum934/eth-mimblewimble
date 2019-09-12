@@ -6,7 +6,8 @@ import docker
 from ethsnarks.field import FQ
 from ethsnarks.jubjub import Point
 
-from .constant import G
+from py934.jubjub import Field
+from .constant import G, H
 
 
 class MMR:
@@ -49,7 +50,10 @@ class MMR:
 
             if covered_width >= position:
                 # The leaf belongs to this peak
-                reversed_sib_map = format(covered_width - position, '0{}b'.format(peak_height - 1))
+                if peak_height == 1:
+                    reversed_sib_map = ""
+                else:
+                    reversed_sib_map = format(covered_width - position, '0{}b'.format(peak_height - 1))
                 sib_map = reversed_sib_map[::-1]
                 my_peak_height = peak_height
                 break
@@ -67,7 +71,8 @@ class PedersenMMRProof:
         self.position = position
         self.item = item
         self.peaks = peaks
-        self.sibling = siblings
+        self.siblings = siblings
+        self.zkp = None
         assert PedersenMMR.inclusion_proof(root, width, position, item, peaks, siblings)
 
     def __str__(self):
@@ -76,7 +81,13 @@ class PedersenMMRProof:
                "position: {}\n".format(self.position) + \
                "item: {}\n".format(self.item) + \
                "peaks: {}\n".format(self.peaks) + \
-               "siblings: {}".format(self.sibling)
+               "siblings: {}".format(self.siblings)
+
+    def zk_proof(self, r: Field, v: Field):
+        if self.zkp is None:
+            self.zkp = PedersenMMR.zk_inclusion_proof(self.root, self.width, self.position, r, v, self.peaks,
+                                                      self.siblings)
+        return self.zkp
 
 
 class PedersenMMR(MMR):
@@ -169,7 +180,10 @@ class PedersenMMR(MMR):
         return True
 
     @staticmethod
-    def zk_inclusion_proof(root: FQ, width, position, item: Point, peaks: List[Point], siblings: List[Point]):
+    def zk_inclusion_proof(root: FQ, width, position, r: Field, v: Field, peaks: List[Point], siblings: List[Point]):
+        item = G * r + H * v
+        tag_point = item * r
+        tag = tag_point.y
         if item.x == 0:
             return None
 
@@ -178,14 +192,16 @@ class PedersenMMR(MMR):
         client = docker.from_env()
         proof_bytes = client.containers.run("ethereum934/inclusion-proof",
                                             environment={"args": " ".join(map(str, [
-                                                position,
-                                                item.x,
-                                                item.y,
+                                                tag,
                                                 *[peak.x for peak in peaks],
                                                 *[peak.y for peak in peaks],
+                                                position,
+                                                r,
+                                                v,
                                                 *[sibling.x for sibling in siblings],
                                                 *[sibling.y for sibling in siblings]
                                             ]))})
+        client.close()
         proof = json.loads(proof_bytes.decode('utf-8'))
         return proof
 
@@ -200,6 +216,7 @@ class PedersenMMR(MMR):
                                                 *[peak.x for peak in peaks],
                                                 *[peak.y for peak in peaks]
                                             ]))})
+        client.close()
         proof = json.loads(proof_bytes.decode('utf-8'))
         return proof
 
@@ -217,6 +234,7 @@ class PedersenMMR(MMR):
                                                 *[item.y for item in items],
                                                 new_root
                                             ]))})
+        client.close()
         proof = json.loads(proof_bytes.decode('utf-8'))
         return proof
 
