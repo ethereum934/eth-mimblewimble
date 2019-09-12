@@ -1,8 +1,10 @@
+import json
+from functools import reduce
 import docker
 import random
 from typing import List
 
-from ethsnarks.field import SNARK_SCALAR_FIELD
+from ethsnarks.field import SNARK_SCALAR_FIELD, FQ
 from ethsnarks.pedersen import pedersen_hash_bits
 from ethsnarks.jubjub import Point
 
@@ -21,25 +23,22 @@ class Signature:
 
 
 class Output:
-    def __init__(self, hh: Point):
+    def __init__(self, r: Field, v: Field):
+        hh = r * G + v * H
         assert hh.valid()
         self.hh = hh
+        self.r = r
+        self.v = v
+        self._range_proof = None
+        self._inclusion_proof = None
 
     @property
     def public_key(self) -> Point:
-        if self.r is not None:
-            return self.r * G
-        elif self.v is not None:
-            return self.hh - self.v * H
-        else:
-            raise ValueError("Does not have the private key")
+        return self.r * G
 
     @property
     def private_key(self) -> Field:
-        if self.r is not None:
-            return self.r
-        else:
-            raise ValueError("Does not have private key")
+        return self.r
 
     def __set_r(self, r: Field):
         self.r = r if isinstance(r, Field) else Field(int(r))
@@ -64,40 +63,33 @@ class Output:
     def new(cls, v: Field):
         # For a light-weight zk proof, pick random value between the zk SNARKs scalar field
         r = Field(random.randint(1, SNARK_SCALAR_FIELD))
-        pedersen_commitment = r * G + v * H
-        txo = cls(pedersen_commitment)
-        txo.__set_r(r)
-        txo.__set_v(v)
+        txo = cls(r, v)
         return txo
 
-    @classmethod
-    def from_secrets(cls, r: int, v: int):
-        r = Field(r)
-        v = Field(v)
-        pedersen_commitment = r * G + v * H
-        txo = cls(pedersen_commitment)
-        txo.__set_r(r)
-        txo.__set_v(v)
-        return txo
+    @property
+    def tag(self):
+        tag_point = self.hh * self.r
+        return tag_point.y
 
-    @classmethod
-    def from_public_key_with_value(cls, rG: Point, v: Field):
-        assert v.n <= SNARK_SCALAR_FIELD
-        pedersen_commitment = rG + v * H
-        txo = cls(pedersen_commitment)
-        txo.__set_v(v)
-        return txo
+    @property
+    def range_proof(self):
+        if self._range_proof is not None:
+            client = docker.from_env()
+            proof_bytes = client.containers.run("ethereum934/transaction-proof",
+                                                environment={"args": " ".join(map(str, [
+                                                    self.r, self.v, self.tag
+                                                ]))})
+            proof = json.loads(proof_bytes.decode('utf-8'))
+            self._range_proof = proof
 
-    @classmethod
-    def from_compressed(cls, compressed: int):
-        return cls(Point.decompress(compressed))
+        return self._range_proof
 
     def compress(self):
         return self.hh.compress()
 
 
 class Kernel:
-    def __init__(self, hh_excess, signature: Signature, fee, metadata):
+    def __init__(self, hh_excess: Point, signature: Signature, fee, metadata):
         self.hh_excess = hh_excess
         self.signature = signature
         self.fee = fee
@@ -119,38 +111,35 @@ class Kernel:
 
 
 class Body:
-    def __init__(self, hh_inputs, hh_outputs: List[Point]):
-        self.hh_inputs = hh_inputs
+    def __init__(self, hh_input_tags: List[FQ], hh_outputs: List[Point]):
+        assert len(hh_input_tags) == 2
+        self.hh_input_tags = hh_input_tags
         self.hh_outputs = hh_outputs
 
     def __str__(self):
         return """
-        inputs: {}
-        outputs: 
-        {} 
+        input tags:
         {}
-        """.format(self.hh_inputs, self.hh_outputs[0], self.hh_outputs[1])
-
-
-class Proof:
-    def __init__(self, range_proof, mw_proof):
-        self.range = range_proof
-        self.mw = mw_proof
+        outputs:
+        {}
+        """.format(self.hh_input_tags, self.hh_outputs)
 
 
 class Transaction:
-    def __init__(self, kernel: Kernel, body: Body, proof: Proof):
+    def __init__(self, kernel: Kernel, body: Body, range_proofs, inclusion_proofs, mimblewimble_proof):
         self.kernel = kernel
         self.body = body
-        self.proof = proof
+        self.range_proofs = range_proofs
+        self.inclusion_proofs = inclusion_proofs
+        self.mimblewimble_proof = mimblewimble_proof
 
     @property
     def challenge(self):
-        return self.create_challenge(self.kernel.hh_excess, self.kernel.signature.R, self.kernel.fee,
-                                     self.kernel.metadata)
+        return Transaction.create_challenge(self.kernel.hh_excess, self.kernel.signature.R, self.kernel.fee,
+                                            self.kernel.metadata)
 
-    @classmethod
-    def create_challenge(cls, hh_excess: Point, hh_sig_salt: Point, fee: Field, metadata: Field) -> Field:
+    @staticmethod
+    def create_challenge(hh_excess: Point, hh_sig_salt: Point, fee: Field, metadata: Field) -> Field:
         # Circuit uses big-endian while ethsnarks lib uses little-endian
         concatenated_source = \
             metadata.bits() + \
@@ -162,47 +151,56 @@ class Transaction:
         hashed_point = pedersen_hash_bits(b'Ethereum934', concatenated_source)
         return Field(hashed_point.y.n)
 
-
-class ExtendedTransaction:
-    def __init__(self,
-                 hh_excess: Point,
-                 signature: Signature,
-                 fee: Field,
-                 metadata: Field,
-                 hh_changes: Point,
-                 hh_outputs: Point,
-                 inputs: Output,  # This value will be hidden to others
-                 ):
-        spent_tag = Field((inputs.r * inputs.hh).y)
-        self.kernel = Kernel(hh_excess, signature, fee, metadata)
-        self.body = Body(spent_tag, [hh_changes, hh_outputs])
-        self.secret = inputs
+    @classmethod
+    def new(cls,
+            hh_excess: Point,
+            signature: Signature,
+            fee: Field,
+            metadata: Field,
+            outputs: List[Point],
+            inputs: List[Output],  # This value will be hidden to others
+            range_proofs: List,
+            inclusion_proofs: List
+            ):
+        tags = [(item.r * item.hh).y for item in inputs]
 
         # check MimbleWimble
-        assert inputs.hh + hh_excess == hh_changes + hh_outputs + fee * H
+        # inputs[0].hh + inputs[1].hh + hh_excess = outputs[0] + outputs[1] + fee*H
+        inflow_hidings = reduce((lambda hidings, txo: hidings + txo.hh), inputs, hh_excess)
+        outflow_hidings = reduce((lambda hidings, hh: hidings + hh), outputs, fee * H)
+        assert inflow_hidings == outflow_hidings
 
         # check Schnorr signature
-        challenge = self.create_challenge(hh_excess, signature.R, fee, metadata)
-        self.challenge = challenge
+        challenge = Transaction.create_challenge(hh_excess, signature.R, fee, metadata)
         assert signature.s * G == signature.R + challenge * hh_excess
-        self._proof = None
 
-    @property
-    def proof(self):
-        if self._proof is not None:
-            return self._proof
+        kernel = Kernel(hh_excess, signature, fee, metadata)
+        body = Body(tags, outputs)
+        range_proofs = range_proofs
+        inclusion_proofs = inclusion_proofs
 
         client = docker.from_env()
-        range_proof_1 = client.containers.run("py934/range", "{} {} {}".format(self.body.hh_outputs[0]))
-        range_proof_2 = client.containers.run("py934/range", "{} {} {}".format(self.body.hh_outputs[1]))
-        mw_proof = client.containers.run("py934/mimblewimble", "{} {} {}")
-        range_proof = None
-        mw_proof = None
-        self._proof = Proof(range_proof, mw_proof)
-        return self._proof
-
-    def export(self):
-        return Transaction(self.kernel, self.body, self.proof)
+        proof_bytes = client.containers.run("ethereum934/transaction-proof",
+                                            environment={"args": " ".join(map(str, [
+                                                kernel.hh_excess.x,
+                                                kernel.hh_excess.y,
+                                                kernel.fee,
+                                                kernel.metadata,
+                                                *kernel.signature.s.to_fq2(),
+                                                kernel.signature.s,
+                                                kernel.signature.R,
+                                                *body.hh_input_tags,
+                                                body.hh_outputs[0].x,
+                                                body.hh_outputs[0].y,
+                                                body.hh_outputs[1].x,
+                                                body.hh_outputs[1].y,
+                                                inputs[0].r,
+                                                inputs[1].r,
+                                                inputs[0].v,
+                                                inputs[1].v
+                                            ]))})
+        mw_proof = json.loads(proof_bytes.decode('utf-8'))
+        return cls(kernel, body, range_proofs, inclusion_proofs, mw_proof)
 
 
 class Request:
@@ -223,35 +221,17 @@ class Request:
         str_to_print = """
         val: {}
         fee: {}
-        inputs: {}
-        changes: {}
         public_sign: {}
         public_excess: {}
         metadata: {}
-        """.format(self.value, self.fee, self.hh_inputs, self.hh_changes, self.hh_sig_salt, self.hh_excess,
+        """.format(self.value, self.fee, self.hh_sig_salt, self.hh_excess,
                    self.metadata)
         return str_to_print
-
-    def valid(self):
-        return Request.validate(self.hh_excess, self.hh_inputs, self.hh_changes, self.value, self.fee)
-
-    @staticmethod
-    def validate(excess: Point, inputs: Point, changes: Point, value: Field, fee: Field):
-        """
-        X = (r_out - r_in)*G
-        X + (v_out - v_in)*H = (r_out - r_in)*G + (v_out - v_in)*H
-        X + (v_out - v_in)*H = (r_out*G + v_out*H) - (r_in*G + v_in*H)
-        X - (value+fee)*H = changes - inputs
-        X + inputs == changes + (value+fee)H
-        """
-        return excess + inputs == H * (value + fee) + changes
 
     def serialize(self):
         serialized = b''
         serialized += self.value.to_bytes('little')
         serialized += self.fee.to_bytes('little')
-        serialized += self.hh_inputs.compress()
-        serialized += self.hh_changes.compress()
         serialized += self.hh_sig_salt.compress()
         serialized += self.hh_excess.compress()
         serialized += self.metadata.to_bytes('little')
@@ -262,21 +242,19 @@ class Request:
         assert len(serialized) == 32 * 7
         value = Field(int.from_bytes(serialized[0:32], 'little'))
         fee = Field(int.from_bytes(serialized[32:64], 'little'))
-        inputs = Point.decompress(serialized[64:96])
-        changes = Point.decompress(serialized[96:128])
         sig_salt = Point.decompress(serialized[128:160])
         excess = Point.decompress(serialized[160:192])
         metadata = Field(int.from_bytes(serialized[192:224], 'little'))
-        instance = cls(value, fee, inputs, changes, sig_salt, excess, metadata)
-        assert instance.valid()
+        instance = cls(value, fee, sig_salt, excess, metadata)
         return instance
 
 
 class Response:
-    def __init__(self, hh_outputs: Point, hh_excess: Point, signature: Signature):
-        self.hh_outputs = hh_outputs
+    def __init__(self, hh_output: Point, hh_excess: Point, signature: Signature, range_proof):
+        self.hh_output = hh_output
         self.hh_excess = hh_excess
         self.signature = signature
+        self.range_proof = range_proof
 
     def __str__(self):
         str_to_print = """
@@ -284,15 +262,16 @@ class Response:
         recipient's output key(hh): {}
         recipient's sig_salt(hh): {}
         recipient's signature: {}
-        """.format(self.hh_outputs, self.signature.R, self.signature)
+        """.format(self.hh_output, self.signature.R, self.signature)
         return str_to_print
 
     def serialize(self):
         serialized = b''
-        serialized += self.hh_outputs.compress()
+        serialized += self.hh_output.compress()
         serialized += self.hh_excess.compress()
         serialized += self.signature.R.compress()
         serialized += self.signature.s.to_bytes('little')
+        serialized += json.dumps(self.range_proof).encode('utf-8')
         return serialized
 
     @classmethod
@@ -304,7 +283,8 @@ class Response:
             Field(int.from_bytes(serialized[96:128], 'little')),
             Point.decompress(serialized[64:96])
         )
-        instance = cls(hh_outputs, hh_excess, signature)
+        range_proof = json.loads(serialized[96:].decode('utf-8'))
+        instance = cls(hh_outputs, hh_excess, signature, range_proof)
         return instance
 
 
@@ -313,8 +293,9 @@ class SendTxBuilder:
         self._metadata = Field(0)
         self._value = None
         self._fee = None
-        self._inputs = None
-        self._changes = None
+        self._inputs = []
+        self._inclusion_proofs = []
+        self._change = None
         self._sig_salt = None
 
     def value(self, _value: int):
@@ -327,14 +308,20 @@ class SendTxBuilder:
         self._fee = Field(_fee)
         return self
 
-    def input_txo(self, _inputs: Output):
-        self._inputs = _inputs
+    def input_txo(self, _txo: Output, _inclusion_proof):
+        self._inputs.append(_txo)
+        self._inclusion_proofs.append(_inclusion_proof)
+        assert len(self._inputs) <= 2, "You can only aggregate up to 2 TXOs"
+        # TODO validate inclusion proof
         return self
 
-    def change_txo(self, _changes: Output):
-        assert self._inputs is not None
-        assert self._inputs.v.n == self._value + self._fee + _changes.v.n
-        self._changes = _changes
+    def change_txo(self, _change: Output):
+        assert len(self._inputs) != 0
+        inflow = reduce((lambda val, txo: val + txo.v.n), self._inputs)
+        outflow = self._value + self._fee + _change.v.n
+        assert inflow == outflow, "Total sum does not change"
+        assert self._change is None, "Change TXO already exists"
+        self._change = _change
         return self
 
     def metadata(self, _metadata):
@@ -359,13 +346,16 @@ class SendTxBuilder:
         return self
 
     def build(self):
+        if len(self._inputs) == 1:
+            self._inputs.append(Output(Field(0), Field(0)))  # Dummy input txo
+        assert len(self._inputs) == 2
         assert self._value is not None
         assert self._fee is not None
-        assert self._inputs is not None
-        assert self._changes is not None
+        assert self._change is not None
         assert self._metadata is not None
         assert self._sig_salt is not None
-        return TxSend(self._value, self._fee, self._inputs, self._changes, self._metadata, self._sig_salt)
+        return TxSend(self._value, self._fee, self._inputs, self._inclusion_proofs, self._change, self._metadata,
+                      self._sig_salt)
 
 
 class ReceiveTxBuilder:
@@ -375,7 +365,6 @@ class ReceiveTxBuilder:
         self._sig_salt = None
 
     def request(self, request: Request):
-        assert request.valid()
         self._request = request
         return self
 
@@ -400,22 +389,34 @@ class TxSend:
     def builder(cls):
         return SendTxBuilder()
 
-    def __init__(self, value: Field, fee: Field, inputs: Output, changes: Output, metadata: Field,
-                 sig_salt: Field):
+    def __init__(
+            self,
+            value: Field,
+            fee: Field,
+            inputs: List[Output],
+            inclusion_proofs,
+            change: Output,
+            metadata: Field,
+            sig_salt: Field
+    ):
         self.value = value
         self.fee = fee
         self.inputs = inputs
-        self.changes = changes
+        self.inclusion_proofs = inclusion_proofs
+        self.change = change
         self.metadata = metadata
         self.sig_salt = sig_salt
         self._request = None
         self._response = None
         self._builder = None
-        assert inputs.v.n == value + fee + changes.v.n, "Not enough input value"
+        inflow = reduce((lambda val, txo: val + txo.v.n), self.inputs)
+        assert inflow == value + fee + change.v.n, "Not enough input value"
+        # TODO : validate proofs in inclusion_proofs:
 
     @property
     def excess(self):
-        return self.changes.r - self.inputs.r
+        r_sum_of_inputs = reduce((lambda excess, txo: excess + txo.r), self.inputs)
+        return self.change.r - r_sum_of_inputs
 
     @property
     def hh_excess(self):
@@ -465,15 +466,18 @@ class TxSend:
     @property
     def transaction(self):
         assert self.response is not None, "You should merge response from the recipient first"
+        hh_excess = self.request.hh_excess + self.response.hh_excess
         aggregated_signature = self.signature + self.response.signature
-        return ExtendedTransaction(
-            self.request.hh_excess + self.response.hh_excess,
+        range_proofs = [self.change.range_proof, self.response.range_proof]
+        return Transaction.new(
+            hh_excess,
             aggregated_signature,
             self.fee,
             self.metadata,
-            self.changes.hh,
-            self.response.hh_outputs,
-            self.inputs  # Secret information
+            [self.change.hh, self.response.hh_output],
+            self.inputs,
+            range_proofs,
+            self.inclusion_proofs
         )
 
 
@@ -502,4 +506,4 @@ class TxReceive:
 
     @property
     def response(self):
-        return Response(self.output.hh, self.output.public_key, self.signature)
+        return Response(self.output.hh, self.output.public_key, self.signature, self.output.range_proof)

@@ -1,10 +1,11 @@
+import json
 from math import floor, log2
 from typing import List
 
+import docker
 from ethsnarks.field import FQ
 from ethsnarks.jubjub import Point
 
-from py934.jubjub import Field
 from .constant import G
 
 
@@ -145,10 +146,6 @@ class PedersenMMR(MMR):
         assert new_peak is not None, "Failed to find new peak"
         return new_peak
 
-    @property
-    def root(self) -> FQ:
-        return self.peak_bagging(self.width, self.peaks)
-
     @staticmethod
     def inclusion_proof(root: FQ, width, position, item: Point, peaks: List[Point],
                         siblings: List[Point]) -> bool:
@@ -171,15 +168,69 @@ class PedersenMMR(MMR):
         assert cursor == my_peak
         return True
 
+    @staticmethod
+    def zk_inclusion_proof(root: FQ, width, position, item: Point, peaks: List[Point], siblings: List[Point]):
+        if item.x == 0:
+            return None
+
+        assert PedersenMMR.inclusion_proof(root, width, position, item, peaks, siblings)
+
+        client = docker.from_env()
+        proof_bytes = client.containers.run("ethereum934/inclusion-proof",
+                                            environment={"args": " ".join(map(str, [
+                                                position,
+                                                item.x,
+                                                item.y,
+                                                *[peak.x for peak in peaks],
+                                                *[peak.y for peak in peaks],
+                                                *[sibling.x for sibling in siblings],
+                                                *[sibling.y for sibling in siblings]
+                                            ]))})
+        proof = json.loads(proof_bytes.decode('utf-8'))
+        return proof
+
+    @staticmethod
+    def zk_peak_bagging_proof(root, width, peaks: List[Point]):
+        assert PedersenMMR.peak_bagging(width, peaks) == root
+        client = docker.from_env()
+        proof_bytes = client.containers.run("ethereum934/peak-bagging-proof",
+                                            environment={"args": " ".join(map(str, [
+                                                root,
+                                                width,
+                                                *[peak.x for peak in peaks],
+                                                *[peak.y for peak in peaks]
+                                            ]))})
+        proof = json.loads(proof_bytes.decode('utf-8'))
+        return proof
+
+    @staticmethod
+    def zk_roll_up_proof(root, width, peaks: List[Point], items: List[Point], new_root):
+        assert PedersenMMR.peak_bagging(width, peaks) == root
+        client = docker.from_env()
+        proof_bytes = client.containers.run("ethereum934/roll-up-proof",
+                                            environment={"args": " ".join(map(str, [
+                                                root,
+                                                width,
+                                                *[peak.x for peak in peaks],
+                                                *[peak.y for peak in peaks],
+                                                *[item.x for item in items],
+                                                *[item.y for item in items],
+                                                new_root
+                                            ]))})
+        proof = json.loads(proof_bytes.decode('utf-8'))
+        return proof
+
+    @property
+    def root(self) -> FQ:
+        return self.peak_bagging(self.width, self.peaks)
+
     def get_inclusion_proof(self, position) -> (FQ, FQ, List[Point], Point):
         # variables to return
         width = self.width
-        peaks = self.peaks
         siblings = []
 
         sibling_map = MMR.sibling_map(width, position)
         my_peak_height = len(sibling_map) + 1
-        my_peak = peaks[len(peaks) - my_peak_height]
 
         # Calculate the belonging peak with siblings
         cursor_index = MMR.leaf_index(position)
@@ -199,7 +250,6 @@ class PedersenMMR(MMR):
 
     def append(self, item: Point):
         new_width = self.width + 1
-        prev_width = self.width
 
         # Store leaf node
         # leaf_node = item * new_width
