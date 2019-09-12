@@ -41,7 +41,7 @@ class TestMMR(unittest.TestCase):
         proof = mmr.get_inclusion_proof(2)
         x_sib = []
         y_sib = []
-        for sib in proof.sibling:
+        for sib in proof.siblings:
             x_sib.append(sib.x.n)
             y_sib.append(sib.y.n)
         print('sibligns')
