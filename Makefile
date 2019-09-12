@@ -15,6 +15,20 @@ container-zokrates-pycrypto: # Used for utils/create_challenge_circuit.py
 	$(info Make: build zokrates pycrypto container for py934)
 	@docker build -f containers/zokrates_pycrypto.dockerfile ./ -t ethereum-mw-zokrates-pycrypto
 
+container-inclusion-proof:
+	@docker build -f containers/inclusionProof.dockerfile ./ -t ethereum934/inclusion-proof
+
+container-range-proof:
+	@docker build -f containers/rangeProof.dockerfile ./ -t ethereum934/range-proof
+
+container-peak-bagging-proof:
+	@docker build -f containers/peakBaggingProof.dockerfile ./ -t ethereum934/peak-bagging-proof
+
+container-roll-up-proof:
+	@docker build -f containers/rollUpProof.dockerfile ./ -t ethereum934/roll-up-proof
+
+container-mimblewimble-proof:
+	@docker build -f containers/mimblewimbleProof.dockerfile ./ -t ethereum934/mimblewimble-proof
 
 # -------------------- Commands for circuit -------------------- #
 test: container-circuit clear-container
@@ -42,7 +56,7 @@ verifier: container-circuit clear-container
 	@mkdir -p build
 	@docker cp zokrates-tmp:/home/zokrates/verifier.sol $(output)
 	@docker rm zokrates-tmp
-	@echo Successfully generated verifier. 
+	@echo Successfully generated verifier.
 	@echo ---------------- result -------------------
 	@echo Circuit: $(circuit)
 	@echo Output: $(output)
@@ -105,4 +119,3 @@ sample_tx: pyenv
 # TODO
 travis: compile
 	$(info Make: Running Travis CI Locally)
-
