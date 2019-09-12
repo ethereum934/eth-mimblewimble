@@ -13,7 +13,7 @@ import "./constants/RANGE.code" as RANGE
 def main(\
 	field[2] excess, field fee, field metadata, field[2] sigScalar, field[2] sigPoint, \
 	field[2] tags, field[2] outputTXO, field[2] changeTXO, \
-	private field[2] myRandoms, private field[2] myValues \
+	private field[2] inputRandoms, private field[2] inputValues \
 ) -> (field):
   // Retrieve constants
   RANGE = RANGE()
@@ -34,10 +34,10 @@ def main(\
   field totalValue = 0
   for field i in 0..2 do
     // TXOs can be aggregated into one input TXO
-    totalRandom = if tags[i] == 0 then totalRandom  else totalRandom + myRandoms[i] fi
-    totalValue = if tags[i] == 0 then totalValue else totalValue + myValues[i] fi
+    totalRandom = if tags[i] == 1 then totalRandom  else totalRandom + inputRandoms[i] fi
+    totalValue = if tags[i] == 1 then totalValue else totalValue + inputValues[i] fi
     // Prove that the spentTag is derived from the inputKey
-    tags[i] == if tags[i] == 0 then 0 else spentTag(myRandoms[i], myValues[i]) fi
+    tags[i] == if tags[i] == 1 then 1 else spentTag(inputRandoms[i], inputValues[i]) fi
   endfor
 
   field[2] inputTXO = ecAdd(ecMul(totalRandom, G), ecMul(totalValue, H))

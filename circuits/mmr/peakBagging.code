@@ -2,13 +2,18 @@ import "PACKING/split" as split
 import "./to16bits.code" as to16bits
 import "../ecMul.code" as ecMul
 import "../constants/G.code" as G
+import "../constants/powerOfTwo16.code" as powerOfTwo16
 
 def main(field width, field[16] xPeaks, field[16] yPeaks) -> (field):
-    field[2] root = G()
+    two = powerOfTwo16()
+    root = G()
+    field coveredWidth = 0
     for field i in 0..16 do
         // Index starts from the right-most bit
         field index = 15- i
         root = ecMul(yPeaks[index], root)
+        coveredWidth = if xPeaks[index] == 0 then coveredWidth else coveredWidth + two[i] fi
     endfor
+    width == coveredWidth
     root = ecMul(width, root)
     return root[1]

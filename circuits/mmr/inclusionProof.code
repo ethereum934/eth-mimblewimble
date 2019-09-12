@@ -1,8 +1,19 @@
 import "PACKING/split" as split
+import "../constants/H.code" as H
+import "../constants/G.code" as G
 import "../constants/powerOfTwo16.code" as powerOfTwo16
 import "../ecMul.code" as ecMul
+import "../ecAdd.code" as ecAdd
 
-def main(field position, field[2] item, field[16] xPeaks, field[16] yPeaks, field[16] xSiblings, field[16] ySiblings) -> (field):
+def main(field tag, field[16] xPeaks, field[16] yPeaks, private field position, private field r, private field v, private field[16] xSiblings, private field[16] ySiblings) -> (field):
+    // Check spent tag derivation
+    field[2] rG  = ecMul(r, G())
+    field[2] vH  = ecMul(v, H())
+    field[2] pedersenCommitment = ecAdd(rG, vH)
+    tagPoint = ecMul(r, pedersenCommitment)
+    tag == tagPoint[1]
+
+    // Check merkle mountain range inclusion proof
     two = powerOfTwo16()
     field currentPeakHeight = 0
     field coveredWidth = 0
@@ -20,7 +31,7 @@ def main(field position, field[2] item, field[16] xPeaks, field[16] yPeaks, fiel
     field[254] splitWidth =  split(relativePosition)
     field[16] sibMap = splitWidth[238..254]
 
-    field[2] leafNode = ecMul(position, item)
+    field[2] leafNode = ecMul(position, pedersenCommitment)
     field[2] cursor = leafNode
     for field i in 0..16 do
         field rightSib = sibMap[15 - i]

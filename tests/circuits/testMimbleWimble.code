@@ -60,7 +60,7 @@ def testTransaction() ->(field):
   field kernelMetadata = txData[7]
   field[2] kernelSigScalar = [txData[2], txData[3]]
   field[2] kernelSigPoint = [txData[4], txData[5]]
-  field[2] bodySpentTags = [txData[8], 0]
+  field[2] bodySpentTags = [txData[8], 1]
   field[2] bodyOutputs1 = [txData[9], txData[10]]
   field[2] bodyOutputs2 = [txData[11], txData[12]]
   field[2] secretInputRs = [txData[13], 0]

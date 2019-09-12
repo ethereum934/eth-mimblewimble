@@ -1,0 +1,5 @@
+import "./peakBagging.code" as peakBagging
+
+def main(field root, field width, field[16] xPeaks, field[16] yPeaks) -> (field):
+    root == peakBagging(width, xPeaks, yPeaks)
+    return 1
