@@ -7,7 +7,7 @@ import "../../circuits/constants/G.code" as G
 import "../../circuits/constants/H.code" as H
 import "../../circuits/rangeProof.code" as rangeProof
 import "../../circuits/challenge.code" as challenge
-import "../../circuits/transaction.code" as transaction
+import "../../circuits/mimblewimble.code" as mimblewimble
 import "../../circuits/lessThan.code" as lessThan
 import "./tx.code" as txData
 
@@ -53,7 +53,7 @@ def testChallenge() -> (field):
   e == 11711192226294630940159179437332182671897406495562481424104859976886317956392
   return 1
 
-def testTransaction() ->(field):
+def testMimblewimble() ->(field):
   txData = txData()
   field[2] kernelExcess = [txData[0], txData[1]]
   field kernelFee = txData[6]
@@ -65,7 +65,7 @@ def testTransaction() ->(field):
   field[2] bodyOutputs2 = [txData[11], txData[12]]
   field[2] secretInputRs = [txData[13], 0]
   field[2] secretInputVs = [txData[14], 0]
-  1 == transaction(\
+  1 == mimblewimble(\
   kernelExcess, kernelFee, kernelMetadata, kernelSigScalar, kernelSigPoint, \
   bodySpentTags, bodyOutputs1, bodyOutputs2, \
   secretInputRs, secretInputVs \
@@ -77,5 +77,5 @@ def main() -> (field):
   1 == testECMul()
   1 == testRangeProof()
   1 == testChallenge()
-  1 == testTransaction()
+  1 == testMimblewimble()
   return 1

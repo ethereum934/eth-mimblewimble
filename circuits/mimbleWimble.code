@@ -1,8 +1,0 @@
-import "./constants/H.code" as H
-import "./ecMul.code" as ecMul
-import "./ecAdd.code" as ecAdd
-
-def main(field[2] inputTXO, field[2] excess, field[2] outputTXO, field[2] changeTXO, field fee) -> (field):
-  // Check zero sum
-  ecAdd(inputTXO, excess) == ecAdd(ecAdd(outputTXO, changeTXO), ecMul(fee, H()))
-  return 1

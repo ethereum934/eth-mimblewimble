@@ -3,7 +3,6 @@ import "./ecMul.code" as ecMul
 import "./ecAdd.code" as ecAdd
 import "./constants/G.code" as G
 import "./constants/H.code" as H
-import "./mimbleWimble.code" as mimbleWimble
 import "./challenge.code" as challenge
 import "./schnorr.code" as schnorr
 import "./spentTag.code" as spentTag
@@ -44,5 +43,5 @@ def main(\
 
 
   // Secure that this transaction follows the MimbleWimble protocol
-  1 == mimbleWimble(inputTXO, excess, outputTXO, changeTXO, fee)
+  ecAdd(inputTXO, excess) == ecAdd(ecAdd(outputTXO, changeTXO), ecMul(fee, H()))
   return 1

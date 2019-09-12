@@ -1,7 +1,7 @@
 import "./testMMR.code" as testMMR
-import "./testMimbleWimble.code" as testMimbleWimble
+import "./testMimblewimble.code" as testMimblewimble
 
 def main() -> (field):
-  1 == testMimbleWimble()
+  1 == testMimblewimble()
   1 == testMMR()
   return 1
