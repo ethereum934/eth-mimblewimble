@@ -1,0 +1,9 @@
+import "./spentTag.code" as spentTag
+import "./mmr/peakBagging.code" as peakBagging
+import "./mmr/zkMMRInclusion.code" as inclusionProof
+
+def main(field root, field tag, field v, private field r, private field[16] xPeaks, private field[16] yPeaks, private field position, private field[16] xSiblings, private field[16] ySiblings) -> (field):
+  tag == spentTag(r, v)
+  root == peakBagging(xPeaks, yPeaks)
+  1 == inclusionProof(root, tag, xPeaks, yPeaks, position, r, v, xSiblings, ySiblings)
+  return 1

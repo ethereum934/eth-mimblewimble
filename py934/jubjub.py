@@ -42,7 +42,7 @@ class Field(FR):
     @classmethod
     def random(cls, start=1, end=SNARK_SCALAR_FIELD):
         assert 0 <= start and end <= SNARK_SCALAR_FIELD
-        return cls(random.randint(start, SNARK_SCALAR_FIELD))
+        return cls(random.randint(start, end))
 
     def to_fq2(self):
         if self.n > SNARK_SCALAR_FIELD:

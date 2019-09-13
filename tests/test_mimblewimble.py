@@ -9,7 +9,7 @@ class Secrets:
     pass
 
 
-class TestTransactions(unittest.TestCase):
+class TestMimblewimble(unittest.TestCase):
     def setUp(self):
         self.sender_secrets = Secrets()
         self.receiver_secrets = Secrets()
@@ -28,6 +28,7 @@ class TestTransactions(unittest.TestCase):
         self.shared_secrets.value = value
         self.shared_secrets.fee = fee
         self.shared_secrets.metadata = metadata
+        self.sender_secrets.deposit_txo = input_txo
         self.sender_secrets.input_txo = input_txo
         self.sender_secrets.change_txo = change_txo
         self.sender_secrets.sig_salt = sender_sig_salt
@@ -67,7 +68,18 @@ class TestTransactions(unittest.TestCase):
 
         # Sender completes a transaction by merging the response
         transaction = tx_send.merge(response)
+        # TODO test with EVM
         self.assertIsNotNone(transaction)
+
+    def test_range_proof(self):
+        range_proof = self.sender_secrets.input_txo.range_proof
+        assert range_proof is not None
+        # TODO test with EVM
+
+    def test_deposit_proof(self):
+        range_proof = self.sender_secrets.deposit_txo.deposit_proof
+        assert range_proof is not None
+        # TODO test with EVM
 
 
 if __name__ == '__main__':

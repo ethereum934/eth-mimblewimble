@@ -4,22 +4,27 @@ import "../constants/G.code" as G
 import "../constants/powerOfTwo16.code" as powerOfTwo16
 import "../ecMul.code" as ecMul
 import "../ecAdd.code" as ecAdd
+import "./peakBagging.code" as peakBagging
 
-def main(field tag, field[16] xPeaks, field[16] yPeaks, private field position, private field r, private field v, private field[16] xSiblings, private field[16] ySiblings) -> (field):
-    // Check spent tag derivation
+def main(field root, field tag, private field[16] xPeaks, private field[16] yPeaks, private field position, private field r, private field v, private field[16] xSiblings, private field[16] ySiblings) -> (field):
+    // Check spent tag
     field[2] rG  = ecMul(r, G())
     field[2] vH  = ecMul(v, H())
     field[2] pedersenCommitment = ecAdd(rG, vH)
     tagPoint = ecMul(r, pedersenCommitment)
     tag == tagPoint[1]
 
-    // Check merkle mountain range inclusion proof
+    // Check peak bagging
+    root == peakBagging(xPeaks, yPeaks)
+
+    // Check inclusion
     two = powerOfTwo16()
     field currentPeakHeight = 0
     field coveredWidth = 0
     field myPeakHeight = 0
     field relativePosition = 0
     field[2] myPeak = [0, 1]
+    // 1. Check my peak
     for field i in 0..16 do
         field peakWidth = if xPeaks[i] == 0 then 0 else two[15 - i] fi
         coveredWidth = coveredWidth + peakWidth
@@ -31,6 +36,7 @@ def main(field tag, field[16] xPeaks, field[16] yPeaks, private field position, 
     field[254] splitWidth =  split(relativePosition)
     field[16] sibMap = splitWidth[238..254]
 
+    // 2. Climbing up to the peak
     field[2] leafNode = ecMul(position, pedersenCommitment)
     field[2] cursor = leafNode
     for field i in 0..16 do
@@ -40,4 +46,5 @@ def main(field tag, field[16] xPeaks, field[16] yPeaks, private field position, 
         cursor = ecMul(leftNode[1], rightNode)
     endfor
     cursor == myPeak
+
     return 1

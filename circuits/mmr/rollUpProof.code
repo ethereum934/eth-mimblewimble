@@ -1,6 +1,0 @@
-import "./mmrRollUp16.code" as mmrRollUp
-
-def main(field root, field width, field[16] xPeaks, field[16] yPeaks, field[16] xItems, field[16] yItems, field newRoot) -> (field):
-    newRoot == mmrRollUp(root, width, xPeaks, yPeaks, xItems, yItems)
-    return 1
-

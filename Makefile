@@ -2,7 +2,7 @@ SHELL:=/bin/bash
 DIR := ${CURDIR}
 output ?= 'build/'
 
-# -------------------- Containers -------------------- #
+# -------------------- Dev Containers -------------------- #
 container-python:
 	$(info Make: build container for py934)
 	@docker build -f containers/py934.dockerfile ./ -t ethereum-mw-zokrates-python
@@ -15,20 +15,48 @@ container-zokrates-pycrypto: # Used for utils/create_challenge_circuit.py
 	$(info Make: build zokrates pycrypto container for py934)
 	@docker build -f containers/zokrates_pycrypto.dockerfile ./ -t ethereum-mw-zokrates-pycrypto
 
-container-inclusion-proof:
-	@docker build -f containers/inclusionProof.dockerfile ./ -t ethereum934/inclusion-proof
+# -------------------- ZK Containers -------------------- #
+container-zk-deposit:
+	@docker build -f containers/zkDeposit.dockerfile ./ -t ethereum934/zk-deposit
 
-container-range-proof:
-	@docker build -f containers/rangeProof.dockerfile ./ -t ethereum934/range-proof
+container-zk-range-proof:
+	@docker build -f containers/zkRangeProof.dockerfile ./ -t ethereum934/zk-range-proof
 
-container-peak-bagging-proof:
-	@docker build -f containers/peakBaggingProof.dockerfile ./ -t ethereum934/peak-bagging-proof
+container-zk-mimblewimble:
+	@docker build -f containers/zkMimblewimble.dockerfile ./ -t ethereum934/zk-mimblewimble
 
-container-roll-up-proof:
-	@docker build -f containers/rollUpProof.dockerfile ./ -t ethereum934/roll-up-proof
+container-zk-withdraw:
+	@docker build -f containers/zkWithdraw.dockerfile ./ -t ethereum934/zk-withdraw
 
-container-mimblewimble-proof:
-	@docker build -f containers/mimblewimbleProof.dockerfile ./ -t ethereum934/mimblewimble-proof
+container-zk-mmr-inclusion:
+	@docker build -f containers/zkMMRInclusion.dockerfile ./ -t ethereum934/zk-mmr-inclusion
+
+container-zk-roll-up:
+	@docker build -f containers/zkRollUp.dockerfile ./ -t ethereum934/zk-roll-up
+
+container-zk-roll-up-1:
+	@docker build -f containers/zkRollUp1.dockerfile ./ -t ethereum934/zk-roll-up-1
+
+container-zk-roll-up-2:
+	@docker build -f containers/zkRollUp2.dockerfile ./ -t ethereum934/zk-roll-up-2
+
+container-zk-roll-up-4:
+	@docker build -f containers/zkRollUp4.dockerfile ./ -t ethereum934/zk-roll-up-4
+
+container-zk-roll-up-8:
+	@docker build -f containers/zkRollUp8.dockerfile ./ -t ethereum934/zk-roll-up-8
+
+container-zk-roll-up-16:
+	@docker build -f containers/zkRollUp16.dockerfile ./ -t ethereum934/zk-roll-up-16
+
+container-zk-roll-up-32:
+	@docker build -f containers/zkRollUp32.dockerfile ./ -t ethereum934/zk-roll-up-32
+
+container-zk-roll-up-64:
+	@docker build -f containers/zkRollUp64.dockerfile ./ -t ethereum934/zk-roll-up-64
+
+container-zk-roll-up-128:
+	@docker build -f containers/zkRollUp128.dockerfile ./ -t ethereum934/zk-roll-up-128
 
 # -------------------- Commands for circuit -------------------- #
 test: container-circuit clear-container

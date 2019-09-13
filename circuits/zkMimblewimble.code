@@ -10,9 +10,8 @@ import "./lessThan.code" as lessThan
 import "./constants/RANGE.code" as RANGE
 
 def main(\
-	field[2] excess, field fee, field metadata, field[2] sigScalar, field[2] sigPoint, \
-	field[2] tags, field[2] outputTXO, field[2] changeTXO, \
-	private field[2] inputRandoms, private field[2] inputValues \
+	field fee, field metadata, field[2] tags, field[2] outputTXO, field[2] changeTXO, field[2] sigPoint, \
+	private field[2] excess, private field[2] sigScalar, private field[2] inputRandoms, private field[2] inputValues \
 ) -> (field):
   // Retrieve constants
   RANGE = RANGE()
@@ -27,6 +26,8 @@ def main(\
 
   // Fee should be less than 2^52
   1 == lessThan(fee, RANGE)
+  1 == lessThan(inputValues[0], RANGE)
+  1 == lessThan(inputValues[1], RANGE)
 
   // Get input TXO from r,v
   field totalRandom = 0
@@ -42,6 +43,6 @@ def main(\
   field[2] inputTXO = ecAdd(ecMul(totalRandom, G), ecMul(totalValue, H))
 
 
-  // Secure that this transaction follows the MimbleWimble protocol
+  // Secure that this transaction follows the Mimblewimble protocol
   ecAdd(inputTXO, excess) == ecAdd(ecAdd(outputTXO, changeTXO), ecMul(fee, H()))
   return 1

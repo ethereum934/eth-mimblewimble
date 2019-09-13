@@ -13,4 +13,3 @@ def main(field root, field width, field[16] xPeaks, field[16] yPeaks, field[2] x
     endfor
     // Return peak bagging
     return peakBagging(xPeaks, yPeaks)
-

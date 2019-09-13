@@ -1,4 +1,4 @@
-# MimbleWimble on Ethereum with zk SNARKs
+# Mimblewimble on Ethereum with zk SNARKs
 
 ## Structure
 - `circuits/`: Circuits
@@ -10,13 +10,13 @@ Install docker and GNU Make
 
 ## Command
 
-#### Circuit Test 
-This will run tests/circuits/unitTest.code 
+#### Circuit Test
+This will run tests/circuits/unitTest.code
 ```shell
 make test
 ```
 
-#### Python library Test 
+#### Python library Test
 This will run `python -m unittest tests/test*.py`
 ```shell
 make pytest

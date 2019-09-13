@@ -31,6 +31,7 @@ class Output:
         self.v = v
         self._range_proof = None
         self._inclusion_proof = None
+        self._deposit_proof = None  # Only for deposit TXO
 
     @property
     def public_key(self) -> Point:
@@ -72,12 +73,30 @@ class Output:
         return tag_point.y
 
     @property
-    def range_proof(self):
-        if self._range_proof is not None:
+    def deposit_proof(self):
+        if self._deposit_proof is None:
             client = docker.from_env()
-            proof_bytes = client.containers.run("ethereum934/range-proof",
+            proof_bytes = client.containers.run("ethereum934/zk-deposit",
                                                 environment={"args": " ".join(map(str, [
-                                                    self.r, self.v, self.tag
+                                                    self.hh.y,  # public
+                                                    self.v,
+                                                    self.r,
+                                                ]))})
+            client.close()
+            proof = json.loads(proof_bytes.decode('utf-8'))
+            self._deposit_proof = proof
+
+        return self._deposit_proof
+
+    @property
+    def range_proof(self):
+        if self._range_proof is None:
+            client = docker.from_env()
+            proof_bytes = client.containers.run("ethereum934/zk-range-proof",
+                                                environment={"args": " ".join(map(str, [
+                                                    self.hh.y,  # public
+                                                    self.r,
+                                                    self.v,
                                                 ]))})
             client.close()
             proof = json.loads(proof_bytes.decode('utf-8'))
@@ -165,7 +184,7 @@ class Transaction:
             ):
         tags = [(item.r * item.hh).y for item in inputs]
 
-        # check MimbleWimble
+        # check Mimblewimble
         # inputs[0].hh + inputs[1].hh + hh_excess = outputs[0] + outputs[1] + fee*H
         inflow_hidings = reduce((lambda hidings, txo: hidings + txo.hh), inputs, hh_excess)
         outflow_hidings = reduce((lambda hidings, hh: hidings + hh), outputs, fee * H)
@@ -181,19 +200,19 @@ class Transaction:
         inclusion_proofs = inclusion_proofs
 
         client = docker.from_env()
-        proof_bytes = client.containers.run("ethereum934/mimblewimble-proof",
+        proof_bytes = client.containers.run("ethereum934/zk-mimblewimble",
                                             environment={"args": " ".join(map(str, [
+                                                kernel.fee,  # public
+                                                kernel.metadata,  # public
+                                                *body.hh_input_tags,  # public
+                                                body.hh_outputs[0].x,  # public
+                                                body.hh_outputs[0].y,  # public
+                                                body.hh_outputs[1].x,  # public
+                                                body.hh_outputs[1].y,  # public
+                                                kernel.signature.R,  # public
                                                 kernel.hh_excess.x,
                                                 kernel.hh_excess.y,
-                                                kernel.fee,
-                                                kernel.metadata,
                                                 *kernel.signature.s.to_fq2(),
-                                                kernel.signature.R,
-                                                *body.hh_input_tags,
-                                                body.hh_outputs[0].x,
-                                                body.hh_outputs[0].y,
-                                                body.hh_outputs[1].x,
-                                                body.hh_outputs[1].y,
                                                 inputs[0].r,
                                                 inputs[1].r,
                                                 inputs[0].v,

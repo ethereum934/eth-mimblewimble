@@ -1,0 +1,53 @@
+{
+  "name": "eth-mimblewimble",
+  "version": "0.0.1",
+  "description": "Mimblewimble on Ethereum with zk-SNARKs",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Todo: specify test sets\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ethereum934/eth-mimblewimble.git"
+  },
+  "keywords": [
+    "mimblewimble",
+    "zk-SNARKs",
+    "ethereum"
+  ],
+  "author": "Wanseob Lim <email@wanseob.com>",
+  "license": "LGPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/ethereum934/eth-mimblewimble/issues"
+  },
+  "homepage": "https://github.com/ethereum934/eth-mimblewimble#readme",
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "ethlint": "^1.2.4",
+    "husky": "^3.0.5",
+    "lint-staged": "^9.2.5",
+    "prettier": "^1.18.2",
+    "truffle": "^5.0.36"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged && npm run test"
+    }
+  },
+  "lint-staged": {
+    "**/*.{js,jsx,ts,tsx,json,css,scss,md}": [
+      "prettier --single-quote --write  --print-width 160",
+      "git add"
+    ],
+    "contracts/**/*.{sol}": [
+      "solium -d contracts/ --fix",
+      "git add"
+    ]
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^2.3.0"
+  }
+}

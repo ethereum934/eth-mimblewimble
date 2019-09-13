@@ -1,13 +1,14 @@
 import "ecc/babyjubjubParams.code" as context
 import "ecc/edwardsOnCurve.code" as onCurve
 import "utils/pack/pack256.code" as pack
+import "../../circuits/spentTag.code" as spentTag
 import "../../circuits/ecAdd.code" as ecAdd
 import "../../circuits/ecMul.code" as ecMul
 import "../../circuits/constants/G.code" as G
 import "../../circuits/constants/H.code" as H
-import "../../circuits/rangeProof.code" as rangeProof
+import "../../circuits/zkRangeProof.code" as zkRangeProof
 import "../../circuits/challenge.code" as challenge
-import "../../circuits/mimblewimble.code" as mimblewimble
+import "../../circuits/zkMimblewimble.code" as zkMimblewimble
 import "../../circuits/lessThan.code" as lessThan
 import "./tx.code" as txData
 
@@ -34,8 +35,8 @@ def testRangeProof() -> (field):
   txData = txData()
   field r = txData[13]
   field v = txData[14]
-  field tag = txData[8]
-  1 == rangeProof(r, v, tag)
+  field tag = 1770506462768170141328657139251875677805314676341663359699998809925891075059
+  1 == zkRangeProof(tag, r, v)
   return 1
 
 def testChallenge() -> (field):
@@ -65,17 +66,23 @@ def testMimblewimble() ->(field):
   field[2] bodyOutputs2 = [txData[11], txData[12]]
   field[2] secretInputRs = [txData[13], 0]
   field[2] secretInputVs = [txData[14], 0]
-  1 == mimblewimble(\
-  kernelExcess, kernelFee, kernelMetadata, kernelSigScalar, kernelSigPoint, \
-  bodySpentTags, bodyOutputs1, bodyOutputs2, \
-  secretInputRs, secretInputVs \
+  1 == zkMimblewimble(\
+  kernelFee, kernelMetadata, bodySpentTags, bodyOutputs1, bodyOutputs2, kernelSigPoint, \
+  kernelExcess, kernelSigScalar, secretInputRs, secretInputVs \
   )
   return 1
 
+def testSpentTag() -> (field):
+  field r = 3
+  field v = 13
+  8656804058881551762472192554585894036978216645174118052975456501209771243135 == spentTag(r,v)
+  return 1
+
 def main() -> (field):
-  1 == testLessThan()
-  1 == testECMul()
+  //1 == testLessThan()
+  //1 == testECMul()
   1 == testRangeProof()
-  1 == testChallenge()
-  1 == testMimblewimble()
+  //1 == testChallenge()
+  //1 == testMimblewimble()
+  //1 == testSpentTag()
   return 1

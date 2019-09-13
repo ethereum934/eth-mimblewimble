@@ -3,14 +3,11 @@ import "../ecMul.code" as ecMul
 import "./peakBagging.code" as peakBagging
 import "./peakUpdate.code" as peakUpdate
 
-def main(field root, field width, field[16] xPeaks, field[16] yPeaks, field[1] xItems, field[1] yItems) -> (field):
+def main(field root, field width, field[16] xPeaks, field[16] yPeaks, field[2] item) -> (field):
     // Check peak bagging
     root == peakBagging(xPeaks, yPeaks)
     // Update peaks
-    for field i in 0..1 do
-        xPeaks, yPeaks = peakUpdate(width, xPeaks, yPeaks, [xItems[i], yItems[i]])
-        width = width + 1
-    endfor
+    xPeaks, yPeaks = peakUpdate(width, xPeaks, yPeaks, [item[0], item[1]])
+    width = width + 1
     // Return peak bagging
     return peakBagging(xPeaks, yPeaks)
-
