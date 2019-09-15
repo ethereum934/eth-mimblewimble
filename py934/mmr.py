@@ -1,4 +1,5 @@
 import json
+import time
 from math import floor, log2
 from typing import List
 
@@ -199,6 +200,7 @@ class PedersenMMR(MMR):
         assert PedersenMMR.inclusion_proof(root, position, item, peaks, siblings)
 
         client = docker.from_env()
+        start = time.time()
         proof_bytes = client.containers.run("ethereum934/zk-mmr-inclusion",
                                             environment={"args": " ".join(map(str, [
                                                 root,  # public
@@ -211,6 +213,7 @@ class PedersenMMR(MMR):
                                                 *[sibling.x for sibling in siblings],
                                                 *[sibling.y for sibling in siblings]
                                             ]))})
+        print('Calculated zk inclusion proof in {} seconds'.format(time.time() - start))
         client.close()
         proof = json.loads(proof_bytes.decode('utf-8'))
         return proof
@@ -226,6 +229,7 @@ class PedersenMMR(MMR):
         assert PedersenMMR.inclusion_proof(root, position, item, peaks, siblings)
         root = PedersenMMR.peak_bagging(peaks)
         client = docker.from_env()
+        start = time.time()
         # "root" includes a TXO which spent tag is "tag" and value is "v"
         proof_bytes = client.containers.run("ethereum934/zk-withdraw",
                                             environment={"args": " ".join(map(str, [
@@ -239,6 +243,7 @@ class PedersenMMR(MMR):
                                                 *[sibling.x for sibling in siblings],
                                                 *[sibling.y for sibling in siblings]
                                             ]))})
+        print('Calculated zk withdraw proof in {} seconds'.format(time.time() - start))
         client.close()
         proof = json.loads(proof_bytes.decode('utf-8'))
         return proof
@@ -246,17 +251,9 @@ class PedersenMMR(MMR):
     @staticmethod
     def zk_roll_up_proof(root, width, peaks: List[Point], items: List[Point], new_root):
         assert PedersenMMR.peak_bagging(peaks) == root
-        print(" ".join(map(str, [
-            root,
-            width,
-            *[peak.x for peak in peaks],
-            *[peak.y for peak in peaks],
-            *[item.x for item in items],
-            *[item.y for item in items],
-            new_root
-        ])))
         client = docker.from_env()
-        proof_bytes = client.containers.run("ethereum934/zk-roll-up",
+        start = time.time()
+        proof_bytes = client.containers.run("ethereum934/zk-roll-up-16",
                                             environment={"args": " ".join(map(str, [
                                                 root,  # public
                                                 width,  # public
@@ -266,6 +263,7 @@ class PedersenMMR(MMR):
                                                 *[peak.x for peak in peaks],
                                                 *[peak.y for peak in peaks]
                                             ]))})
+        print('Calculated zk roll up proof in {} seconds'.format(time.time() - start))
         client.close()
         proof = json.loads(proof_bytes.decode('utf-8'))
         return proof

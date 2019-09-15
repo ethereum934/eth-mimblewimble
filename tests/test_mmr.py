@@ -44,7 +44,6 @@ class TestMMR(unittest.TestCase):
             assert proof is not None
             # TODO test with VM
 
-    @unittest.skip
     def test_zk_roll_up_proof(self):
         current_root = self.mmr.root
         current_width = self.mmr.width

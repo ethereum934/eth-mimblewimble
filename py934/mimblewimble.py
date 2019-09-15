@@ -1,4 +1,5 @@
 import json
+import time
 from functools import reduce
 import docker
 import random
@@ -76,12 +77,14 @@ class Output:
     def deposit_proof(self):
         if self._deposit_proof is None:
             client = docker.from_env()
+            start = time.time()
             proof_bytes = client.containers.run("ethereum934/zk-deposit",
                                                 environment={"args": " ".join(map(str, [
                                                     self.hh.y,  # public
                                                     self.v,
                                                     self.r,
                                                 ]))})
+            print('Calculated deposit proof in {} seconds'.format(time.time() - start))
             client.close()
             proof = json.loads(proof_bytes.decode('utf-8'))
             self._deposit_proof = proof
@@ -92,12 +95,14 @@ class Output:
     def range_proof(self):
         if self._range_proof is None:
             client = docker.from_env()
+            start = time.time()
             proof_bytes = client.containers.run("ethereum934/zk-range-proof",
                                                 environment={"args": " ".join(map(str, [
                                                     self.hh.y,  # public
                                                     self.r,
                                                     self.v,
                                                 ]))})
+            print('Calculated range proof in {} seconds'.format(time.time() - start))
             client.close()
             proof = json.loads(proof_bytes.decode('utf-8'))
             self._range_proof = proof
@@ -200,6 +205,7 @@ class Transaction:
         inclusion_proofs = inclusion_proofs
 
         client = docker.from_env()
+        start = time.time()
         proof_bytes = client.containers.run("ethereum934/zk-mimblewimble",
                                             environment={"args": " ".join(map(str, [
                                                 kernel.fee,  # public
@@ -218,6 +224,7 @@ class Transaction:
                                                 inputs[0].v,
                                                 inputs[1].v
                                             ]))})
+        print('Calculated mimblewimble proof in {} seconds'.format(time.time() - start))
         client.close()
         mw_proof = json.loads(proof_bytes.decode('utf-8'))
         return cls(kernel, body, range_proofs, inclusion_proofs, mw_proof)
