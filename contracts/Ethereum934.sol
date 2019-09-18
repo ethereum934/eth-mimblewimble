@@ -91,8 +91,8 @@ contract Ethereum934 {
       */
     function depositToMagicalWorld(
         address erc20,
-        uint amount,
         uint txo,
+        uint amount,
         uint[2] memory a,
         uint[2][2] memory b,
         uint[2] memory c
@@ -116,7 +116,55 @@ contract Ethereum934 {
 
     /** @dev Update MMR using zk-RollUp.
       */
-    function rollUpMimblewimble(
+    function rollUp1Mimblewimble(
+        address erc20,
+        uint root,
+        uint newRoot,
+        uint[62][1] memory mwTxs,
+        uint[8] memory rollUpProof
+    ) public {
+        ERC20Pool storage pool = pools[erc20];
+
+        uint[2] memory xItems;
+        uint[2] memory yItems;
+        for (uint8 i = 0; i < 1; i++) {
+            MimblewimbleTx memory mwTx = toMimblewimbleTx(mwTxs[i]);
+            require(verifyMimblewimbleTx(pool, mwTx), "Mimblewimble proof fails");
+            xItems[2 * i + 0] = mwTx.output1.x;
+            xItems[2 * i + 1] = mwTx.output2.x;
+            yItems[2 * i + 0] = mwTx.output1.y;
+            yItems[2 * i + 1] = mwTx.output2.y;
+            emit Mimblewimble(erc20, mwTx.output1.y);
+            emit Mimblewimble(erc20, mwTx.output2.y);
+        }
+
+        // Check roll up
+        require(
+            zkRollUp2.verifyTx(
+                [rollUpProof[0], rollUpProof[1]],
+                [[rollUpProof[2], rollUpProof[3]], [rollUpProof[4], rollUpProof[5]]],
+                [rollUpProof[6], rollUpProof[7]],
+                [root, pool.mmrWidths[root], xItems[0], xItems[1], yItems[0], yItems[1], newRoot, 1]
+            ),
+            "Roll up fails"
+        );
+        // Update root & width
+        if (root != 1) {
+            require(pool.mmrRoots[root], "Root does not exist");
+            pool.mmrRoots[newRoot] = true;
+            uint16 newWidth = pool.mmrWidths[root] + 16;
+            require(newWidth < 66536, "This 16 bit MMR only contains 66535 items");
+            pool.mmrWidths[newRoot] = newWidth;
+            delete pool.mmrRoots[root];
+            delete pool.mmrWidths[root];
+        }
+
+        emit RollUp(erc20, root, newRoot, 8);
+    }
+
+    /** @dev Update MMR using zk-RollUp.
+      */
+    function rollUp8Mimblewimble(
         address erc20,
         uint root,
         uint newRoot,

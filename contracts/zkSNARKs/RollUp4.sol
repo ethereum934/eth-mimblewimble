@@ -540,7 +540,7 @@ library Pairing {
     }
 }
 
-contract Verifier {
+contract ZkRollUp4 {
     using Pairing for *;
     struct VerifyingKey {
         Pairing.G1Point a;

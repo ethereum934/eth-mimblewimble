@@ -7,7 +7,7 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Todo: specify test sets\" && exit 0"
+    "test": "./node_modules/.bin/truffle test tests/Ethereum934.test.js"
   },
   "repository": {
     "type": "git",
@@ -26,6 +26,9 @@
   "homepage": "https://github.com/ethereum934/eth-mimblewimble#readme",
   "devDependencies": {
     "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "chai-bn": "^0.1.1",
+    "eth-gas-reporter": "^0.2.11",
     "ethlint": "^1.2.4",
     "husky": "^3.0.5",
     "lint-staged": "^9.2.5",
