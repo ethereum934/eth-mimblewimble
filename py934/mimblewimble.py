@@ -25,6 +25,8 @@ class Signature:
 
 class Output:
     def __init__(self, r: Field, v: Field):
+        r = r if isinstance(r, Field) else Field(r)
+        v = v if isinstance(v, Field) else Field(v)
         hh = r * G + v * H
         assert hh.valid()
         self.hh = hh
@@ -228,6 +230,10 @@ class Transaction:
         client.close()
         mw_proof = json.loads(proof_bytes.decode('utf-8'))
         return cls(kernel, body, range_proofs, inclusion_proofs, mw_proof)
+
+    def to_dict(self):
+        converted = json.dumps(self, default=lambda o: int(o) if type(o) in [Field, FQ] else getattr(o, '__dict__', str(o)))
+        return json.loads(converted)
 
 
 class Request:
