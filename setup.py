@@ -14,7 +14,7 @@ setuptools.setup(
     description="Python library for Ethereum 9 3/4",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/wanseob/py934",
+    url="https://github.com/ethereum/eth-mimblewimble",
     packages=setuptools.find_packages(),
     install_requires=required,
     classifiers=[
