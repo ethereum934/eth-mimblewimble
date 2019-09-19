@@ -159,7 +159,103 @@ contract Ethereum934 {
             delete pool.mmrWidths[root];
         }
 
-        emit RollUp(erc20, root, newRoot, 8);
+        emit RollUp(erc20, root, newRoot, 1);
+    }
+
+    /** @dev Update MMR using zk-RollUp.
+      */
+    function rollUp2Mimblewimble(
+        address erc20,
+        uint root,
+        uint newRoot,
+        uint[62][2] memory mwTxs,
+        uint[8] memory rollUpProof
+    ) public {
+        ERC20Pool storage pool = pools[erc20];
+
+        uint[4] memory xItems;
+        uint[4] memory yItems;
+        for (uint8 i = 0; i < 2; i++) {
+            MimblewimbleTx memory mwTx = toMimblewimbleTx(mwTxs[i]);
+            require(verifyMimblewimbleTx(pool, mwTx), "Mimblewimble proof fails");
+            xItems[2 * i + 0] = mwTx.output1.x;
+            xItems[2 * i + 1] = mwTx.output2.x;
+            yItems[2 * i + 0] = mwTx.output1.y;
+            yItems[2 * i + 1] = mwTx.output2.y;
+            emit Mimblewimble(erc20, mwTx.output1.y);
+            emit Mimblewimble(erc20, mwTx.output2.y);
+        }
+
+        // Check roll up
+        require(
+            zkRollUp4.verifyTx(
+                [rollUpProof[0], rollUpProof[1]],
+                [[rollUpProof[2], rollUpProof[3]], [rollUpProof[4], rollUpProof[5]]],
+                [rollUpProof[6], rollUpProof[7]],
+                [root, pool.mmrWidths[root], xItems[0], xItems[1], xItems[2], xItems[3], yItems[0], yItems[1], yItems[2], yItems[3], newRoot, 1]
+            ),
+            "Roll up fails"
+        );
+        // Update root & width
+        if (root != 1) {
+            require(pool.mmrRoots[root], "Root does not exist");
+            pool.mmrRoots[newRoot] = true;
+            uint16 newWidth = pool.mmrWidths[root] + 16;
+            require(newWidth < 66536, "This 16 bit MMR only contains 66535 items");
+            pool.mmrWidths[newRoot] = newWidth;
+            delete pool.mmrRoots[root];
+            delete pool.mmrWidths[root];
+        }
+
+        emit RollUp(erc20, root, newRoot, 2);
+    }
+
+    /** @dev Update MMR using zk-RollUp.
+     */
+    function rollUp4Mimblewimble(
+        address erc20,
+        uint root,
+        uint newRoot,
+        uint[62][4] memory mwTxs,
+        uint[8] memory rollUpProof
+    ) public {
+        ERC20Pool storage pool = pools[erc20];
+
+        uint[8] memory xItems;
+        uint[8] memory yItems;
+        for (uint8 i = 0; i < 4; i++) {
+            MimblewimbleTx memory mwTx = toMimblewimbleTx(mwTxs[i]);
+            require(verifyMimblewimbleTx(pool, mwTx), "Mimblewimble proof fails");
+            xItems[2 * i + 0] = mwTx.output1.x;
+            xItems[2 * i + 1] = mwTx.output2.x;
+            yItems[2 * i + 0] = mwTx.output1.y;
+            yItems[2 * i + 1] = mwTx.output2.y;
+            emit Mimblewimble(erc20, mwTx.output1.y);
+            emit Mimblewimble(erc20, mwTx.output2.y);
+        }
+
+        // Check roll up
+        require(
+            zkRollUp8.verifyTx(
+                [rollUpProof[0], rollUpProof[1]],
+                [[rollUpProof[2], rollUpProof[3]], [rollUpProof[4], rollUpProof[5]]],
+                [rollUpProof[6], rollUpProof[7]],
+                [root, pool.mmrWidths[root], xItems[0], xItems[1], xItems[2], xItems[3], xItems[4], xItems[5], xItems[6], xItems[7], yItems[0], yItems[1], yItems[2], yItems[3], yItems[4], yItems[5], yItems[6], yItems[7], newRoot, 1]
+            ),
+            "Roll up fails"
+        );
+        // Update root & width
+        if (root != 1) {
+            require(pool.mmrRoots[root], "Root does not exist");
+            pool.mmrRoots[newRoot] = true;
+            uint16 newWidth = pool.mmrWidths[root] + 16;
+            require(newWidth < 66536, "This 16 bit MMR only contains 66535 items");
+            pool.mmrWidths[newRoot] = newWidth;
+            delete pool.mmrRoots[root];
+            delete pool.mmrWidths[root];
+        }
+
+        emit RollUp(erc20, root, newRoot, 4);
     }
 
     /** @dev Update MMR using zk-RollUp.
