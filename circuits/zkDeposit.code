@@ -1,14 +1,8 @@
-import "./constants/G.code" as G
-import "./constants/H.code" as H
 import "./constants/RANGE.code" as RANGE
-import "./ecMul.code" as ecMul
-import "./ecAdd.code" as ecAdd
+import "./spentTag.code" as spentTag
 import "./lessThan.code" as lessThan
 
-def main(field y, field v, private field r) -> (field):
-  field[2] rG  = ecMul(r, G())
-  field[2] vH  = ecMul(v, H())
-  field[2] pedersenCommitment = ecAdd(rG, vH)
+def main(field tag, field v, private field r) -> (field):
+  tag == spentTag(r, v)
   1 == lessThan(v, RANGE())
-  y == pedersenCommitment[1]
   return 1

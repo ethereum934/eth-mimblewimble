@@ -12,6 +12,17 @@ contract Ethereum934 {
         mapping(uint => bool) spentTags;
     }
 
+    struct OptimisticRollUp {
+        address erc20;
+        address submitter;
+        uint fee;
+        uint prevRoot;
+        uint newRoot;
+        uint16 newWidth;
+        uint timestamp;
+        bool exist;
+    }
+
     struct Proof {
         uint[2] a;
         uint[2][2] b;
@@ -64,9 +75,9 @@ contract Ethereum934 {
         address zkWithdrawAddr
     ) public {
         zkDeposit = ZkDeposit(zkDepositAddr);
+        zkRangeProof = ZkRangeProof(zkRangeProofAddr);
         zkMimblewimble = ZkMimblewimble(zkMimblewimbleAddr);
         zkMMRInclusion = ZkMMRInclusion(zkMMRInclusionAddr);
-        zkRangeProof = ZkRangeProof(zkRangeProofAddr);
         zkRollUp1 = ZkRollUp1(zkRollUp1Addr);
         zkRollUp2 = ZkRollUp2(zkRollUp2Addr);
         zkRollUp4 = ZkRollUp4(zkRollUp4Addr);
@@ -76,42 +87,45 @@ contract Ethereum934 {
     }
 
     mapping(address => ERC20Pool) pools;
+    mapping(bytes32 => OptimisticRollUp) optimisticRollUps;
     mapping(address => uint) public deposits;
+    uint challengePeriod = 100;
 
     event RollUp(address erc20, uint root, uint newRoot, uint items);
+    event RollUpCandidate(address erc20, uint root, uint newRoot, uint items);
     event Mimblewimble(address erc20, uint txo);
 
     /** @dev Deposits ERC20 to the magical world with zkSNARKs.
       * @param erc20 Address of the ERC20 token.
       * @param amount Amount of token to deposit.
-      * @param txo Newly generated TXO's y-axis value.
+      * @param tag Newly generated TXO's y-axis value.
       * @param a zkSNARKs proof data.
       * @param b zkSNARKs proof data.
       * @param c zkSNARKs proof data.
       */
     function depositToMagicalWorld(
         address erc20,
-        uint txo,
+        uint tag,
         uint amount,
         uint[2] memory a,
         uint[2][2] memory b,
         uint[2] memory c
     ) public {
         ERC20Pool storage pool = pools[erc20];
-        require(pool.coinbase[txo] == false, "TXO already exists");
+        require(pool.coinbase[tag] == false, "TXO already exists");
         // Check Deposit TXO's value is same with the given amount
         require(
             zkDeposit.verifyTx(
                 a,
                 b,
                 c,
-                [txo, amount, 1]
+                [tag, amount, 1]
             ), "Deposit ZKP fails"
         );
         // Transfer ERC20 token. It should have enough allowance
         IERC20(erc20).transferFrom(msg.sender, address(this), amount);
         // Record the TXO as valid
-        pool.coinbase[txo] = true;
+        pool.coinbase[tag] = true;
     }
 
     /** @dev Update MMR using zk-RollUp.
@@ -120,7 +134,7 @@ contract Ethereum934 {
         address erc20,
         uint root,
         uint newRoot,
-        uint[62][1] memory mwTxs,
+        uint[52][1] memory mwTxs,
         uint[8] memory rollUpProof
     ) public {
         ERC20Pool storage pool = pools[erc20];
@@ -149,26 +163,23 @@ contract Ethereum934 {
             "Roll up fails"
         );
         // Update root & width
-        if (root != 1) {
-            require(pool.mmrRoots[root], "Root does not exist");
-            pool.mmrRoots[newRoot] = true;
-            uint16 newWidth = pool.mmrWidths[root] + 16;
-            require(newWidth < 66536, "This 16 bit MMR only contains 66535 items");
-            pool.mmrWidths[newRoot] = newWidth;
-            delete pool.mmrRoots[root];
-            delete pool.mmrWidths[root];
-        }
+        require(root == 1 || pool.mmrRoots[root], "Root does not exist");
+        pool.mmrRoots[newRoot] = true;
+        uint16 newWidth = pool.mmrWidths[root] + 2;
+        require(newWidth < 66536, "This 16 bit MMR only contains 66535 items");
+        pool.mmrWidths[newRoot] = newWidth;
+        delete pool.mmrRoots[root];
+        delete pool.mmrWidths[root];
 
         emit RollUp(erc20, root, newRoot, 1);
     }
-
     /** @dev Update MMR using zk-RollUp.
       */
     function rollUp2Mimblewimble(
         address erc20,
         uint root,
         uint newRoot,
-        uint[62][2] memory mwTxs,
+        uint[52][2] memory mwTxs,
         uint[8] memory rollUpProof
     ) public {
         ERC20Pool storage pool = pools[erc20];
@@ -197,15 +208,13 @@ contract Ethereum934 {
             "Roll up fails"
         );
         // Update root & width
-        if (root != 1) {
-            require(pool.mmrRoots[root], "Root does not exist");
-            pool.mmrRoots[newRoot] = true;
-            uint16 newWidth = pool.mmrWidths[root] + 16;
-            require(newWidth < 66536, "This 16 bit MMR only contains 66535 items");
-            pool.mmrWidths[newRoot] = newWidth;
-            delete pool.mmrRoots[root];
-            delete pool.mmrWidths[root];
-        }
+        require(root == 1 || pool.mmrRoots[root], "Root does not exist");
+        pool.mmrRoots[newRoot] = true;
+        uint16 newWidth = pool.mmrWidths[root] + 4;
+        require(newWidth < 66536, "This 16 bit MMR only contains 66535 items");
+        pool.mmrWidths[newRoot] = newWidth;
+        delete pool.mmrRoots[root];
+        delete pool.mmrWidths[root];
 
         emit RollUp(erc20, root, newRoot, 2);
     }
@@ -216,7 +225,7 @@ contract Ethereum934 {
         address erc20,
         uint root,
         uint newRoot,
-        uint[62][4] memory mwTxs,
+        uint[52][4] memory mwTxs,
         uint[8] memory rollUpProof
     ) public {
         ERC20Pool storage pool = pools[erc20];
@@ -245,15 +254,13 @@ contract Ethereum934 {
             "Roll up fails"
         );
         // Update root & width
-        if (root != 1) {
-            require(pool.mmrRoots[root], "Root does not exist");
-            pool.mmrRoots[newRoot] = true;
-            uint16 newWidth = pool.mmrWidths[root] + 16;
-            require(newWidth < 66536, "This 16 bit MMR only contains 66535 items");
-            pool.mmrWidths[newRoot] = newWidth;
-            delete pool.mmrRoots[root];
-            delete pool.mmrWidths[root];
-        }
+        require(root == 1 || pool.mmrRoots[root], "Root does not exist");
+        pool.mmrRoots[newRoot] = true;
+        uint16 newWidth = pool.mmrWidths[root] + 8;
+        require(newWidth < 66536, "This 16 bit MMR only contains 66535 items");
+        pool.mmrWidths[newRoot] = newWidth;
+        delete pool.mmrRoots[root];
+        delete pool.mmrWidths[root];
 
         emit RollUp(erc20, root, newRoot, 4);
     }
@@ -264,7 +271,7 @@ contract Ethereum934 {
         address erc20,
         uint root,
         uint newRoot,
-        uint[62][8] memory mwTxs,
+        uint[52][8] memory mwTxs,
         uint[8] memory rollUpProof
     ) public {
         ERC20Pool storage pool = pools[erc20];
@@ -293,18 +300,80 @@ contract Ethereum934 {
             "Roll up fails"
         );
         // Update root & width
-        if (root != 1) {
-            require(pool.mmrRoots[root], "Root does not exist");
-            pool.mmrRoots[newRoot] = true;
-            uint16 newWidth = pool.mmrWidths[root] + 16;
-            require(newWidth < 66536, "This 16 bit MMR only contains 66535 items");
-            pool.mmrWidths[newRoot] = newWidth;
-            delete pool.mmrRoots[root];
-            delete pool.mmrWidths[root];
-        }
+        require(root == 1 || pool.mmrRoots[root], "Root does not exist");
+        pool.mmrRoots[newRoot] = true;
+        uint16 newWidth = pool.mmrWidths[root] + 16;
+        require(newWidth < 66536, "This 16 bit MMR only contains 66535 items");
+        pool.mmrWidths[newRoot] = newWidth;
+        delete pool.mmrRoots[root];
+        delete pool.mmrWidths[root];
 
         emit RollUp(erc20, root, newRoot, 8);
     }
+
+    function optimisticRollUp8Mimblewimble(
+        address erc20,
+        uint root,
+        uint newRoot,
+        uint[52][8] memory mwTxs,
+        uint[8] memory rollUpProof
+    ) public {
+        ERC20Pool storage pool = pools[erc20];
+        bytes32 id = keccak256(msg.data);
+        require(root == 1 || pool.mmrRoots[root], "Root does not exist");
+        uint16 newWidth = pool.mmrWidths[root] + 16;
+        require(newWidth < 66536, "This 16 bit MMR only contains 66535 items");
+
+        uint fee = 0;
+        for (uint8 i = 0; i < 8; i++) {
+            fee += mwTxs[i][0];
+        }
+        OptimisticRollUp memory rollUp = OptimisticRollUp(
+            erc20,
+            msg.sender,
+            fee,
+            root,
+            newRoot,
+            newWidth,
+            now,
+            false
+        );
+        optimisticRollUps[id] = rollUp;
+        emit RollUpCandidate(erc20, root, newRoot, 8);
+    }
+
+    function finalizeRollUp(bytes32 id) public {
+        OptimisticRollUp storage rollUp = optimisticRollUps[id];
+        ERC20Pool storage pool = pools[rollUp.erc20];
+        require(now >= rollUp.timestamp + challengePeriod, "Still in challenge period");
+        require(rollUp.exist, "Deleted or does not exist");
+        // Update root & width
+        require(rollUp.prevRoot == 1 || pool.mmrRoots[rollUp.prevRoot], "Root does not exist");
+        pool.mmrRoots[rollUp.newRoot] = true;
+        pool.mmrWidths[rollUp.newRoot] = rollUp.newWidth;
+        delete pool.mmrRoots[rollUp.prevRoot];
+        delete pool.mmrWidths[rollUp.prevRoot];
+
+        emit RollUp(rollUp.erc20, rollUp.prevRoot, rollUp.newRoot, 1);
+        IERC20(rollUp.erc20).transferFrom(address(this), rollUp.submitter, rollUp.fee);
+        delete optimisticRollUps[id];
+    }
+
+    function challengeOptimisticRollUp8Mimblewimble(
+        address erc20,
+        uint root,
+        uint newRoot,
+        uint[52][8] memory mwTxs,
+        uint[8] memory rollUpProof,
+        uint challengeType
+    ) public {
+        if (challengeType == 0) {
+
+        } else {
+
+        }
+    }
+
 
     /** @dev Withdraws ERC20 to the muggle world without revealing which TXO's been used.
       * @param erc20 Address of the ERC20 token.
@@ -327,25 +396,45 @@ contract Ethereum934 {
         // Check double spending
         require(!pools[erc20].spentTags[tag], "Should not already have been spent");
         // Check the tag is derived from a unknown TXO belonging to the MMR trees
-        require(zkWithdraw.verifyTx(zkpA, zkpB, zkpC, [tag, value, root, 1]), "Should satisfy the zkp condition");
+        require(zkWithdraw.verifyTx(zkpA, zkpB, zkpC, [root, tag, value, 1]), "Should satisfy the zkp condition");
         // Record as spent
         pools[erc20].spentTags[tag] = true;
         // Transfer
         IERC20(erc20).transfer(msg.sender, value);
     }
 
+    function roots(address erc20, uint root) public view returns (bool) {
+        ERC20Pool storage pool = pools[erc20];
+        return pool.mmrRoots[root];
+    }
+
+    function width(address erc20, uint root) public view returns (uint16) {
+        ERC20Pool storage pool = pools[erc20];
+        return pool.mmrWidths[root];
+    }
+
+
     function verifyTag(ERC20Pool storage pool, uint tag, uint root, Proof memory inclusionProof) internal returns (bool) {
         // Check double spending
-        require(pool.spentTags[tag] == false, "Already spent");
+        require(tag == 1 || pool.spentTags[tag] == false, "Already spent");
         // Check the root exists
-        require(pool.mmrRoots[root] == true, "Root does not exist");
-        // Check the spent tag is derived from an included item in the MMR
-        require(
-            pool.coinbase[tag] ||
-            zkMMRInclusion.verifyTx(inclusionProof.a, inclusionProof.b, inclusionProof.c, [root, tag, 1]),
-            "Not sure the root includes the hidden TXO"
-        );
-        return true;
+        if (pool.coinbase[tag]) {
+            //            delete pool.coinbase[tag];
+            // Deposit tag
+            return true;
+        } else if (tag == 1) {
+            // Dummy tag
+            return true;
+        } else {
+            require(pool.mmrRoots[root], "Pool does not include the tag");
+            // Check the spent tag is derived from an included item in the MMR
+            require(
+                zkMMRInclusion.verifyTx(inclusionProof.a, inclusionProof.b, inclusionProof.c, [root, tag, 1]),
+                "Not sure that the root includes the hidden TXO"
+            );
+            return true;
+        }
+        return false;
     }
 
     function verifyMimblewimbleTx(ERC20Pool storage pool, MimblewimbleTx memory mwTx) internal returns (bool) {
@@ -381,11 +470,10 @@ contract Ethereum934 {
                 [mwTx.fee, mwTx.metadata, mwTx.tag1, mwTx.tag2, mwTx.output1.x, mwTx.output1.y, mwTx.output2.x, mwTx.output2.y, mwTx.sigPoint.x, mwTx.sigPoint.y, 1]
             ), "Mimblewimble proof fails"
         );
-        // 6. Check the range proofs of the new TXOs
         return true;
     }
 
-    function toMimblewimbleTx(uint[62] memory data) internal pure returns (MimblewimbleTx memory) {
+    function toMimblewimbleTx(uint[52] memory data) internal pure returns (MimblewimbleTx memory) {
         return MimblewimbleTx(
             data[0],
             data[1],
@@ -398,9 +486,9 @@ contract Ethereum934 {
             EllipticPoint(data[22], data[23]),
             Proof([data[24], data[25]], [[data[26], data[27]], [data[28], data[29]]], [data[30], data[31]]),
             EllipticPoint(data[32], data[33]),
-            Proof([data[44], data[45]], [[data[46], data[47]], [data[48], data[49]]], [data[50], data[51]]),
-            EllipticPoint(data[52], data[53]),
-            Proof([data[54], data[55]], [[data[56], data[57]], [data[58], data[59]]], [data[60], data[61]])
+            Proof([data[34], data[35]], [[data[36], data[37]], [data[38], data[39]]], [data[40], data[41]]),
+            EllipticPoint(data[42], data[43]),
+            Proof([data[44], data[45]], [[data[46], data[47]], [data[48], data[49]]], [data[50], data[51]])
         );
     }
 }

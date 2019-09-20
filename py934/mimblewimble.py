@@ -61,7 +61,8 @@ class Output:
         r: {}
         v: {}
         commitment: ({}, {})
-        """.format(self.r, self.v, self.hh.x, self.hh.y)
+        tag: {}
+        """.format(self.r, self.v, self.hh.x, self.hh.y, self.tag)
 
     @classmethod
     def new(cls, v: Field):
@@ -81,8 +82,9 @@ class Output:
             client = docker.from_env()
             start = time.time()
             proof_bytes = client.containers.run("ethereum934/zk-deposit",
+                                                auto_remove=True,
                                                 environment={"args": " ".join(map(str, [
-                                                    self.hh.y,  # public
+                                                    self.tag,  # public
                                                     self.v,
                                                     self.r,
                                                 ]))})
@@ -99,6 +101,7 @@ class Output:
             client = docker.from_env()
             start = time.time()
             proof_bytes = client.containers.run("ethereum934/zk-range-proof",
+                                                auto_remove=True,
                                                 environment={"args": " ".join(map(str, [
                                                     self.hh.y,  # public
                                                     self.r,
@@ -208,7 +211,30 @@ class Transaction:
 
         client = docker.from_env()
         start = time.time()
+        print("""
+        kernel fee: {}
+        kernel metadata: {}
+        input tags: {}
+        output txo 1: {}
+        output txo 2: {}
+        kernel signature R: {}
+        kernel excess: {}
+        kernel signature s: {}
+        input secret 1: {}
+        input secret 2: {}
+        """.format(
+            kernel.fee,
+            kernel.metadata,
+            body.hh_input_tags,
+            body.hh_outputs[0],
+            body.hh_outputs[1],
+            kernel.signature.R,
+            kernel.hh_excess,
+            kernel.signature.s,
+            inputs[0], inputs[1]
+        ))
         proof_bytes = client.containers.run("ethereum934/zk-mimblewimble",
+                                            auto_remove=True,
                                             environment={"args": " ".join(map(str, [
                                                 kernel.fee,  # public
                                                 kernel.metadata,  # public
@@ -224,15 +250,17 @@ class Transaction:
                                                 inputs[0].r,
                                                 inputs[1].r,
                                                 inputs[0].v,
-                                                inputs[1].v
-                                            ]))})
+                                                inputs[1].v]))})
         print('Calculated mimblewimble proof in {} seconds'.format(time.time() - start))
         client.close()
         mw_proof = json.loads(proof_bytes.decode('utf-8'))
         return cls(kernel, body, range_proofs, inclusion_proofs, mw_proof)
 
     def to_dict(self):
-        converted = json.dumps(self, default=lambda o: int(o) if type(o) in [Field, FQ] else getattr(o, '__dict__', str(o)))
+        converted = json.dumps(self,
+                               default=lambda o: format(int(o), "#066x") if type(o) in [Field, FQ] else getattr(o,
+                                                                                                                '__dict__',
+                                                                                                                str(o)))
         return json.loads(converted)
 
 
@@ -341,7 +369,10 @@ class SendTxBuilder:
         self._fee = Field(_fee)
         return self
 
-    def input_txo(self, _txo: Output, _inclusion_proof):
+    def input_txo(self, _txo: Output, _inclusion_proof=None):
+        if _txo is None:
+            _txo = Output(0, 0)
+            _inclusion_proof = None
         self._inputs.append(_txo)
         self._inclusion_proofs.append(_inclusion_proof)
         assert len(self._inputs) <= 2, "You can only aggregate up to 2 TXOs"
@@ -380,7 +411,7 @@ class SendTxBuilder:
 
     def build(self):
         if len(self._inputs) == 1:
-            self._inputs.append(Output(Field(0), Field(0)))  # Dummy input txo
+            self.input_txo(Output(0, 0))
         assert len(self._inputs) == 2
         assert self._value is not None
         assert self._fee is not None
@@ -501,13 +532,13 @@ class TxSend:
         assert self.response is not None, "You should merge response from the recipient first"
         hh_excess = self.request.hh_excess + self.response.hh_excess
         aggregated_signature = self.signature + self.response.signature
-        range_proofs = [self.change.range_proof, self.response.range_proof]
+        range_proofs = [self.response.range_proof, self.change.range_proof]
         return Transaction.new(
             hh_excess,
             aggregated_signature,
             self.fee,
             self.metadata,
-            [self.change.hh, self.response.hh_output],
+            [self.response.hh_output, self.change.hh],
             self.inputs,
             range_proofs,
             self.inclusion_proofs

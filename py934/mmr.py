@@ -202,6 +202,7 @@ class PedersenMMR(MMR):
         client = docker.from_env()
         start = time.time()
         proof_bytes = client.containers.run("ethereum934/zk-mmr-inclusion",
+                                            auto_remove=True,
                                             environment={"args": " ".join(map(str, [
                                                 root,  # public
                                                 tag,  # public
@@ -232,6 +233,7 @@ class PedersenMMR(MMR):
         start = time.time()
         # "root" includes a TXO which spent tag is "tag" and value is "v"
         proof_bytes = client.containers.run("ethereum934/zk-withdraw",
+                                            auto_remove=True,
                                             environment={"args": " ".join(map(str, [
                                                 root,  # public
                                                 tag,  # public
@@ -255,6 +257,7 @@ class PedersenMMR(MMR):
         start = time.time()
         assert len(items) in [1, 2, 4, 8, 16], "You can only roll up 1, 2, 4, 8 or 16 items at once"
         proof_bytes = client.containers.run("ethereum934/zk-roll-up-{}".format(len(items)),
+                                            auto_remove=True,
                                             environment={"args": " ".join(map(str, [
                                                 root,  # public
                                                 width,  # public
