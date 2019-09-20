@@ -102,7 +102,7 @@ contract('Ethereum934', async ([...users]) => {
   })
   context('Deposit', async () => {
     describe('deposit()', async () => {
-      it('Deposit with TXO', async () => {
+      it('Deposit ERC20 and create the first coinbase.', async () => {
         // Deposit ERC20 token to the magical world
         await ethereum934.depositToMagicalWorld(
           erc20.address,
@@ -116,6 +116,9 @@ contract('Ethereum934', async ([...users]) => {
         let depositedBalance1 = await erc20.balanceOf(ethereum934.address)
         let expected1 = `${web3.utils.hexToNumber(deposit1.inputs[1])}`
         depositedBalance1.should.be.a.bignumber.that.equals(expected1)
+      })
+      it('Deposit ERC20 and create the second coinbase.', async () => {
+        // Deposit ERC20 token to the magical world
         await ethereum934.depositToMagicalWorld(
           erc20.address,
           deposit2.inputs[0],
@@ -131,7 +134,7 @@ contract('Ethereum934', async ([...users]) => {
       })
     })
     describe('rollUp()', async () => {
-      it('round 1', async () => {
+      it('Round 1: roll up 2 Mimblewimble txs spending 1 coinbase for each.', async () => {
         await ethereum934.rollUp2Mimblewimble(
           erc20.address,
           rollUp1.inputs[0],
@@ -140,7 +143,7 @@ contract('Ethereum934', async ([...users]) => {
           flattenProof(rollUp1.proof)
         )
       })
-      it('round 2', async () => {
+      it('Round 2: roll up 2 Mimblewimble txs spending 2 hidden TXOs and 1 hidden TXO.', async () => {
         await ethereum934.rollUp2Mimblewimble(
           erc20.address,
           rollUp2.inputs[0],
@@ -149,7 +152,7 @@ contract('Ethereum934', async ([...users]) => {
           flattenProof(rollUp2.proof)
         )
       })
-      it('round 3', async () => {
+      it('Round 3: roll up 2 Mimblewimble txs spending 2 hidden TXOs for each.', async () => {
         await ethereum934.rollUp2Mimblewimble(
           erc20.address,
           rollUp3.inputs[0],
@@ -158,7 +161,7 @@ contract('Ethereum934', async ([...users]) => {
           flattenProof(rollUp3.proof)
         )
       })
-      it('round 4', async () => {
+      it('Round 4: roll up 1 Mimblewimble tx spending 1 hidden TXO.', async () => {
         await ethereum934.rollUp1Mimblewimble(
           erc20.address,
           rollUp4.inputs[0],
@@ -167,7 +170,7 @@ contract('Ethereum934', async ([...users]) => {
           flattenProof(rollUp4.proof)
         )
       })
-      it('round 5', async () => {
+      it('Round 5: roll up 1 Mimblewimble tx spending 2 hidden TXOs.', async () => {
         await ethereum934.rollUp1Mimblewimble(
           erc20.address,
           rollUp5.inputs[0],
@@ -178,7 +181,7 @@ contract('Ethereum934', async ([...users]) => {
       })
     })
     describe('withdraw()', async () => {
-      it('Withdraw with inclusion proof', async () => {
+      it('Withdraw ERC20 with zk proof spending a hidden TXO.', async () => {
         // Deposit ERC20 token to the magical world
         await ethereum934.withdrawToMuggleWorld(
           erc20.address,
