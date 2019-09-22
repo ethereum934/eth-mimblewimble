@@ -255,7 +255,7 @@ class PedersenMMR(MMR):
         assert PedersenMMR.peak_bagging(peaks) == root
         client = docker.from_env()
         start = time.time()
-        assert len(items) in [1, 2, 4, 8, 16], "You can only roll up 1, 2, 4, 8 or 16 items at once"
+        assert len(items) in [1, 2, 4, 8, 16, 32, 64], "You can only roll up 1, 2, 4, 8, 16, 32, 64 items at once"
         proof_bytes = client.containers.run("ethereum934/zk-roll-up-{}".format(len(items)),
                                             auto_remove=True,
                                             environment={"args": " ".join(map(str, [

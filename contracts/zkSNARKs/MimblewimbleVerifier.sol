@@ -539,7 +539,7 @@ library Pairing {
     }
 }
 
-contract ZkMimblewimble {
+contract MimblewimbleVerifier {
     using Pairing for *;
     struct VerifyingKey {
         Pairing.G1Point a;
