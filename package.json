@@ -7,7 +7,11 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "./node_modules/.bin/truffle test tests/Ethereum934.test.js"
+    "postinstall": "chmod +x scripts/*",
+    "standard": ".\"/node_modules/.bin/standard\" test/**/*.js src/** --fix",
+    "ethlint": ".\"/node_modules/.bin/solium\" -d contracts --fix",
+    "precommit": "lint-staged && npm run test",
+    "test": ".\"/scripts/test_contracts.sh\""
   },
   "repository": {
     "type": "git",
@@ -30,6 +34,7 @@
     "chai-bn": "^0.1.1",
     "eth-gas-reporter": "^0.2.11",
     "ethlint": "^1.2.4",
+    "ganache-cli": "^6.7.0",
     "husky": "^3.0.5",
     "lint-staged": "^9.2.5",
     "prettier": "^1.18.2",

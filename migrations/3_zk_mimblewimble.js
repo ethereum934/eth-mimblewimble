@@ -1,5 +1,5 @@
 const ZkMimblewimble = artifacts.require('MimblewimbleVerifier')
 
 module.exports = function(deployer) {
-  deployer.deploy(ZkMimblewimble);
+  deployer.deploy(ZkMimblewimble, {overwrite: false});
 };

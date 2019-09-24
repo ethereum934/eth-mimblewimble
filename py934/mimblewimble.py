@@ -211,28 +211,6 @@ class Transaction:
 
         client = docker.from_env()
         start = time.time()
-        print("""
-        kernel fee: {}
-        kernel metadata: {}
-        input tags: {}
-        output txo 1: {}
-        output txo 2: {}
-        kernel signature R: {}
-        kernel excess: {}
-        kernel signature s: {}
-        input secret 1: {}
-        input secret 2: {}
-        """.format(
-            kernel.fee,
-            kernel.metadata,
-            body.hh_input_tags,
-            body.hh_outputs[0],
-            body.hh_outputs[1],
-            kernel.signature.R,
-            kernel.hh_excess,
-            kernel.signature.s,
-            inputs[0], inputs[1]
-        ))
         proof_bytes = client.containers.run("ethereum934/zk-mimblewimble",
                                             auto_remove=True,
                                             environment={"args": " ".join(map(str, [

@@ -14,7 +14,7 @@ contract Ethereum934 {
         mapping(uint => bool) coinbases;
     }
 
-    struct OptimisticRollUp {
+    struct RollUpObj {
         address erc20;
         address submitter;
         uint fee;
@@ -96,12 +96,12 @@ contract Ethereum934 {
     }
 
     mapping(address => ERC20Pool) pools;
-    mapping(bytes32 => OptimisticRollUp) optimisticRollUps;
+    mapping(bytes32 => RollUpObj) optimisticRollUps;
     mapping(address => uint) public deposits;
     uint challengePeriod = 0;
 
     event RollUp(address erc20, uint root, uint newRoot, uint items);
-    event RollUpCandidate(address erc20, uint root, uint newRoot, uint items);
+    event OptimisticRollUp(bytes32 id, address erc20, uint root, uint newRoot, uint items);
     event Mimblewimble(address erc20, uint txo);
 
     /** @dev Deposits ERC20 to the magical world with zkSNARKs.
@@ -280,29 +280,30 @@ contract Ethereum934 {
         emit RollUp(erc20, root, newRoot, 4);
     }
 
-    function optimisticRollUp8Mimblewimble(
+    function optimisticRollUpMimblewimble(
         address erc20,
         uint root,
         uint newRoot,
-        uint[52][8] memory mwTxs,
+        uint[52][] memory mwTxs,
         uint[8] memory rollUpProof
     ) public {
+        uint qty = mwTxs.length;
+        require(qty == 4 || qty == 8 || qty == 16 || qty == 32, "Unsupported scale");
         ERC20Pool storage pool = pools[erc20];
         bytes32 id = keccak256(msg.data);
-        require(root == 1 || pool.mmrRoots[root], "Root does not exist");
-        uint16 newWidth = pool.mmrWidths[root] + 16;
+        uint16 newWidth = pool.mmrWidths[root] + uint16(mwTxs.length * 2);
         require(newWidth < 66536, "This 16 bit MMR only contains 66535 items");
 
         uint fee = 0;
-        uint[] memory tags = new uint[](8);
-        for (uint8 i = 0; i < 8; i++) {
+        uint[] memory tags = new uint[](qty);
+        for (uint8 i = 0; i < qty; i++) {
             fee += mwTxs[i][0];
             tags[i] = mwTxs[i][2];
             require(pool.tags[tags[i]] == Tag.Unspent, "Not a valid tag.");
             pool.tags[tags[i]] = Tag.Spending;
         }
 
-        OptimisticRollUp memory rollUp = OptimisticRollUp(
+        RollUpObj memory rollUp = RollUpObj(
             erc20,
             msg.sender,
             fee,
@@ -311,14 +312,14 @@ contract Ethereum934 {
             newWidth,
             now,
             tags,
-            false
+            true
         );
         optimisticRollUps[id] = rollUp;
-        emit RollUpCandidate(erc20, root, newRoot, 8);
+        emit OptimisticRollUp(id, erc20, root, newRoot, qty);
     }
 
     function finalizeRollUp(bytes32 id) public {
-        OptimisticRollUp storage rollUp = optimisticRollUps[id];
+        RollUpObj storage rollUp = optimisticRollUps[id];
         ERC20Pool storage pool = pools[rollUp.erc20];
         require(now >= rollUp.timestamp + challengePeriod, "Still in challenge period");
         require(rollUp.exist, "Deleted or does not exist");
@@ -334,6 +335,7 @@ contract Ethereum934 {
         }
         IERC20(rollUp.erc20).transfer(rollUp.submitter, rollUp.fee);
         delete optimisticRollUps[id];
+        require(!optimisticRollUps[id].exist, "Something went wrong");
     }
 
     function challengeOptimisticRollUp8Mimblewimble(
@@ -390,7 +392,7 @@ contract Ethereum934 {
         return pool.mmrWidths[root];
     }
 
-    function revertOptimisticRollUp(OptimisticRollUp storage rollUp) internal {
+    function revertOptimisticRollUp(RollUpObj storage rollUp) internal {
         // Set tags as None
     }
 
@@ -442,7 +444,7 @@ contract Ethereum934 {
         // Transaction can be included only in a given period;
         require(mwTx.metadata > block.number, "Expired");
 
-        // Check this transaction satisfies the mimblewimble protocol
+        // Check this transaction satisfies the ethereum934 protocol
         require(
             zkMimblewimble.verifyTx(
                 mwTx.txProof.a,

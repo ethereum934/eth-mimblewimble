@@ -2,6 +2,8 @@ SHELL:=/bin/bash
 DIR := ${CURDIR}
 output ?= 'build/'
 
+test: test-circuits test-py934 test-contracts
+
 # -------------------- Dev Containers -------------------- #
 container-python:
 	$(info Make: build container for py934)
@@ -59,7 +61,7 @@ container-zk-roll-up-128:
 	@docker build -f containers/zkRollUp128.dockerfile ./ -t ethereum934/zk-roll-up-128
 
 # -------------------- Commands for circuit -------------------- #
-test: container-circuit clear-container
+test-circuits: container-circuit clear-container
 	$(info Make: Run unit test for circuits)
 	@docker run\
 		--name zokrates-tmp \
@@ -131,17 +133,24 @@ clear-container:
 
 # -------------------- Commands for py934 library -------------------- #
 
-pyenv:
+install-python:
 	@pip3 install -q virtualenv
 	@[[ -d .venv ]] || virtualenv .venv -p python3
 	@source .venv/bin/activate; pip3 install -q -r requirements.txt
 
-pytest: pyenv
+test-py934: install-python
 	@source .venv/bin/activate; python -m unittest tests/test*.py
 
-sample_tx: pyenv
-	@source .venv/bin/activate; python utils/sample_tx.py
+sample_data: install-python
+	@source .venv/bin/activate; python sample.py
 
+# -------------------- Commands for contracts -------------------- #
+
+install-node:
+	@npm install
+
+test-contracts:
+	@npm run test;
 
 # -------------------- Commands for CI/CI -------------------- #
 # TODO

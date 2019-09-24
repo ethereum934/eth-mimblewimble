@@ -1,5 +1,5 @@
 const ZkWithdraw = artifacts.require('WithdrawVerifier')
 
 module.exports = function(deployer) {
-  deployer.deploy(ZkWithdraw);
+  deployer.deploy(ZkWithdraw, {overwrite: false});
 };

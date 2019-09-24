@@ -1,8 +1,8 @@
 const Ethereum934 = artifacts.require('Ethereum934')
 const ZkDeposit = artifacts.require('DepositVerifier')
+const ZkRangeProof = artifacts.require('RangeProofVerifier')
 const ZkMimblewimble = artifacts.require('MimblewimbleVerifier')
 const ZkMMRInclusion = artifacts.require('MMRInclusionVerifier')
-const ZkRangeProof = artifacts.require('RangeProofVerifier')
 const ZkRollUp1 = artifacts.require('RollUp1Verifier')
 const ZkRollUp2 = artifacts.require('RollUp2Verifier')
 const ZkRollUp4 = artifacts.require('RollUp4Verifier')
@@ -25,6 +25,6 @@ module.exports = function (deployer) {
     ZkRollUp16.address,
     ZkRollUp32.address,
     ZkRollUp64.address,
-    ZkWithdraw.address
+    ZkWithdraw.address,
   )
 }

@@ -79,10 +79,10 @@ def testSpentTag() -> (field):
   return 1
 
 def main() -> (field):
-  //1 == testLessThan()
-  //1 == testECMul()
+  1 == testLessThan()
+  1 == testECMul()
   1 == testRangeProof()
-  //1 == testChallenge()
-  //1 == testMimblewimble()
-  //1 == testSpentTag()
+  1 == testChallenge()
+  1 == testMimblewimble()
+  1 == testSpentTag()
   return 1
