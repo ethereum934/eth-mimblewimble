@@ -1,11 +1,11 @@
-const Ethereum934 = artifacts.require('Ethereum934')
-
-const ERC20 = artifacts.require('EthGalleon')
+const assert = require('assert');
 const chai = require('chai')
 const BN = web3.utils.BN
 chai.use(require('chai-bn')(web3.utils.BN))
 chai.use(require('chai-as-promised'))
 chai.should()
+const Ethereum934 = artifacts.require('Ethereum934')
+const ERC20 = artifacts.require('EthGalleon')
 const deposit1 = require('./dataset/ethereum934/deposit1')
 const deposit2 = require('./dataset/ethereum934/deposit2')
 const tx1 = require('./dataset/ethereum934/tx1')
@@ -129,6 +129,7 @@ contract('Ethereum934', async ([...users]) => {
   before('Create and allocate ERC20 tokens', async () => {
     erc20 = await ERC20.new({ from: god })
     ethereum934 = await Ethereum934.deployed()
+    assert(erc20.address === '0xACa6BFcc686ED93b5aa5820d5A7B7B82513c106c', 'Testing purpose ERC20 address has been changed. You need to make a new test data set')
     await erc20.mint(alice, web3.utils.toWei(new BN(10000)), { from: god })
     await erc20.mint(bob, web3.utils.toWei(new BN(10000)), { from: god })
     await erc20.approve(ethereum934.address, web3.utils.toWei(new BN(1000000)), { from: alice })

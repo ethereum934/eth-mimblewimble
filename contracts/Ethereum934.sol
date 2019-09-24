@@ -152,7 +152,7 @@ contract Ethereum934 {
         uint[2][2] memory items;
         for (uint8 i = 0; i < 1; i++) {
             MimblewimbleTx memory mwTx = toMimblewimbleTx(mwTxs[i]);
-            require(verifyMimblewimbleTx(pool, mwTx), "Mimblewimble proof fails");
+            require(verifyMimblewimbleTx(erc20, pool, mwTx), "Mimblewimble proof fails");
             fee += mwTx.fee;
             items[2 * i + 0] = [mwTx.output1.x, mwTx.output1.y];
             items[2 * i + 1] = [mwTx.output2.x, mwTx.output2.y];
@@ -199,7 +199,7 @@ contract Ethereum934 {
         uint[2][4] memory items;
         for (uint8 i = 0; i < 2; i++) {
             MimblewimbleTx memory mwTx = toMimblewimbleTx(mwTxs[i]);
-            require(verifyMimblewimbleTx(pool, mwTx), "Mimblewimble proof fails");
+            require(verifyMimblewimbleTx(erc20, pool, mwTx), "Mimblewimble proof fails");
             fee += mwTx.fee;
             items[2 * i + 0] = [mwTx.output1.x, mwTx.output1.y];
             items[2 * i + 1] = [mwTx.output2.x, mwTx.output2.y];
@@ -247,7 +247,7 @@ contract Ethereum934 {
         uint[2][8] memory items;
         for (uint8 i = 0; i < 4; i++) {
             MimblewimbleTx memory mwTx = toMimblewimbleTx(mwTxs[i]);
-            require(verifyMimblewimbleTx(pool, mwTx), "Mimblewimble proof fails");
+            require(verifyMimblewimbleTx(erc20, pool, mwTx), "Mimblewimble proof fails");
             fee += mwTx.fee;
             items[2 * i + 0] = [mwTx.output1.x, mwTx.output1.y];
             items[2 * i + 1] = [mwTx.output2.x, mwTx.output2.y];
@@ -420,7 +420,7 @@ contract Ethereum934 {
         return false;
     }
 
-    function verifyMimblewimbleTx(ERC20Pool storage pool, MimblewimbleTx memory mwTx) internal returns (bool) {
+    function verifyMimblewimbleTx(address erc20, ERC20Pool storage pool, MimblewimbleTx memory mwTx) internal returns (bool) {
         if (mwTx.tag1 != 1) {
             require(verifyTag(pool, mwTx.tag1, mwTx.root1, mwTx.inclusionProof1), "The tag is not valid");
             pool.tags[mwTx.tag1] = Tag.Spent;
@@ -442,7 +442,10 @@ contract Ethereum934 {
         );
 
         // Transaction can be included only in a given period;
-        require(mwTx.metadata > block.number, "Expired");
+        address addr = address(uint160(mwTx.metadata));
+        uint256 expiration = (mwTx.metadata - uint256(addr)) >> 160;
+        require(uint24(expiration )> uint24(block.number), "Expired");
+        require(address(addr) == erc20, "Another ERC20");
 
         // Check this transaction satisfies the ethereum934 protocol
         require(

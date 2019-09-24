@@ -25,12 +25,14 @@ class TestMimblewimble(unittest.TestCase):
         sender_sig_salt = Field.random()
         output_txo = Output.new(value)
         receiver_sig_salt = Field.random()
-        metadata = "Ethereum934"
+        address = int("0xACa6BFcc686ED93b5aa5820d5A7B7B82513c106c", 16)
+        expiration = 100
         self.mmr = PedersenMMR()
         self.mmr.append(input_txo.hh)
         self.shared_secrets.value = value
         self.shared_secrets.fee = fee
-        self.shared_secrets.metadata = metadata
+        self.shared_secrets.address = address
+        self.shared_secrets.expiration = expiration
         self.sender_secrets.deposit_txo = input_txo
         self.sender_secrets.input_txo = input_txo
         self.sender_secrets.change_txo = change_txo
@@ -47,7 +49,7 @@ class TestMimblewimble(unittest.TestCase):
             fee(self.shared_secrets.fee). \
             input_txo(self.sender_secrets.input_txo, self.sender_secrets.inclusion_proof). \
             change_txo(self.sender_secrets.change_txo). \
-            metadata(self.shared_secrets.metadata). \
+            metadata(self.shared_secrets.address, self.shared_secrets.expiration). \
             sig_salt(self.sender_secrets.sig_salt). \
             build()
 

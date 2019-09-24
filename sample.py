@@ -7,6 +7,8 @@ import copy
 import os
 
 BUILD_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'build')
+ERC20_ADDRESS = int("0xACa6BFcc686ED93b5aa5820d5A7B7B82513c106c", 16)
+EXPIRATION = 100
 
 
 def make_tx(
@@ -31,7 +33,7 @@ def make_tx(
         input_txo(input_txo_1, inclusion_proof_1). \
         input_txo(input_txo_2, inclusion_proof_2). \
         change_txo(change_txo). \
-        metadata(100). \
+        metadata(ERC20_ADDRESS, EXPIRATION). \
         sig_salt(Field.random(1, SNARK_SCALAR_FIELD)). \
         build()
     tx_receive = TxReceive.builder(). \

@@ -291,12 +291,12 @@ Test machine: Ryzen1700 (3GHz 8 Core) + DDR4 32Gb
 ## How to contribute
 
 ##### Export verifier contracts for a circuit
-1. Export verifier using already existing docker image
+1. Export verifier using an existing docker image.
     ```shell
     docker run --name mw-proof-generator ethereum934/zk-mimblewimble /bin/bash -c "./zokrates export-verifier"
     docker cp mw-proof-generator:/home/zokrates/verifier.sol contracts/generated/MimblewimbleVerifier.sol
     ```
-1. Export verifier building a new image
+1. Export updated verifier with building a new image.
     ```shell
     # Specify the circuit path to compile and export the verifier contract
     make verifier circuit=YOUR_CIRCUIT_PATH

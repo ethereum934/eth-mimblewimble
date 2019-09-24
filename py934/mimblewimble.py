@@ -366,17 +366,10 @@ class SendTxBuilder:
         self._change = _change
         return self
 
-    def metadata(self, _metadata):
-        if isinstance(_metadata, Field):
-            _metadata = _metadata
-        elif isinstance(_metadata, int):
-            pass
-        elif isinstance(_metadata, str):
-            _metadata = int.from_bytes(_metadata.encode(), byteorder='little')
-        elif isinstance(_metadata, bytes):
-            _metadata = int.from_bytes(_metadata, byteorder='little')
-        else:
-            raise TypeError('{} is not a supported type'.format(type(_metadata)))
+    def metadata(self, _erc20_address: int, _expiration: int):
+        assert _erc20_address <= 1461501637330902918203684832716283019655932542976  # 1 << 160 (20 bytes)
+        assert _expiration <= 19807040628566084398385987584  # 1 << (254 - 160) (12 bytes)
+        _metadata = _erc20_address + (_expiration << 160)
 
         assert _metadata < SNARK_SCALAR_FIELD
         self._metadata = Field(_metadata)
