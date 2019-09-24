@@ -3,10 +3,11 @@ from eth_account import Account
 
 from py934.mimblewimble import TxSend, Output, Field, Request, TxReceive
 from py934.mmr import PedersenMMR
-import json
 import os
 
 BUILD_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dataset')
+
+
 class Secrets:
     pass
 
@@ -71,20 +72,14 @@ class TestMimblewimble(unittest.TestCase):
         # Sender completes a transaction by merging the response
         transaction = tx_send.merge(response)
         self.assertIsNotNone(transaction)
-        with open(os.path.join(BUILD_PATH, 'transaction.json'), 'w+') as file:
-            json.dump(transaction.to_dict(), file)
 
     def test_range_proof(self):
         range_proof = self.sender_secrets.input_txo.range_proof
         self.assertIsNotNone(range_proof)
-        with open(os.path.join(BUILD_PATH, 'range_proof.json'), 'w+') as file:
-            json.dump(range_proof, file)
 
     def test_deposit_proof(self):
         deposit_proof = self.sender_secrets.deposit_txo.deposit_proof
         self.assertIsNotNone(deposit_proof)
-        with open(os.path.join(BUILD_PATH, 'deposit_proof.json'), 'w+') as file:
-            json.dump(deposit_proof, file)
 
 
 if __name__ == '__main__':

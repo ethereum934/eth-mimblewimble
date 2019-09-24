@@ -539,7 +539,7 @@ library Pairing {
     }
 }
 
-contract DepositVerifier {
+contract Verifier {
     using Pairing for *;
     struct VerifyingKey {
         Pairing.G1Point a;

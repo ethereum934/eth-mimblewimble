@@ -540,7 +540,7 @@ library Pairing {
     }
 }
 
-contract RollUp2Verifier {
+contract Verifier {
     using Pairing for *;
     struct VerifyingKey {
         Pairing.G1Point a;
@@ -555,20 +555,16 @@ contract RollUp2Verifier {
         Pairing.G1Point c;
     }
     function verifyingKey() pure internal returns (VerifyingKey memory vk) {
-        vk.a = Pairing.G1Point(uint256(0x2c9b76b5e506ff0f5207b00d2dfeb21e0a43e03ac6fdbd8dd99f83bc047acdb6), uint256(0x0f68430ab136573e7feb9a94ef914ff7969fc8955586064e5ee816641aebd5d4));
-        vk.b = Pairing.G2Point([uint256(0x229a88b4b55f017fcbf6527b3c4722c327157439f5de43d6414c717748a0149e), uint256(0x054340b8fac96e1e6b44be7175ee9174c919471c916baea39d63d03425b7a19a)], [uint256(0x1cb62792d47c66426ebdf7629661f727670dfda75ea1071e7cee24a059e5b347), uint256(0x05ec641970f7127bc6376698332d1ded582a9714d58a660c7afc54d1846fb72b)]);
-        vk.gamma = Pairing.G2Point([uint256(0x184340a3170157530073c689a8ae50c3b981ac6a59b940cae1f97c1a468bc347), uint256(0x0e7a9ef3410a08790af1ab87c22fdd8f25a840e9866968b08a169e9ccfc77989)], [uint256(0x02815b6ab53222177d4d10aedc9eff92a8fb3a87142fd4a3f97ff6353de1db1b), uint256(0x2b1403f9f3632afbdf4e23e166986a0d616ed21eb9e369f3c438931fd4bfc52b)]);
-        vk.delta = Pairing.G2Point([uint256(0x2b7c06694b3b79fa07fe80697eadee19aaa2ce4ef527f984694dd95c18a64f90), uint256(0x059d37d057e1ce4bfd564a432a606600bcdfa5f922a449fde77c45522f97ea80)], [uint256(0x0a898407e060c5b78cceb8f19cfce899f5c55e7c09714b46cef46c8bcee48beb), uint256(0x0189506b1c79a9dba86d6244f2bfb7a5d33cf9effcb8c51656f241c1f4ac11f2)]);
-        vk.gamma_abc = new Pairing.G1Point[](9);
-        vk.gamma_abc[0] = Pairing.G1Point(uint256(0x0eef8d05c42786984745ee4a3a3059bed796ac2330c24ef065dfd98ff8dd02bf), uint256(0x169590f4405de5436ba403854dbfc7347e43fecbbfb4ca9e7f6ec34441dba4af));
-        vk.gamma_abc[1] = Pairing.G1Point(uint256(0x15c48cff55e567f71b432797552513470e3619d7118a172423565adace4993b9), uint256(0x0bf8294b964e5a7e109b3cd12f3aaa7ecfa1cfa6b66fb3a95989819611b37aaa));
-        vk.gamma_abc[2] = Pairing.G1Point(uint256(0x06fdcddbd3c6cee6fdcbb02f5918219e4684deba264359e192f453ae882a2bbd), uint256(0x288bfac2893b43895f32605f37d04ec9d17c623c4f9b15e4e9a29ca363f0ec4c));
-        vk.gamma_abc[3] = Pairing.G1Point(uint256(0x1fc94684dbd94d9d7608783dce8a9f3606fff2e0c83ae5ea41fa8865c936f2b1), uint256(0x0640bd7942846a28835c5dbbcfd3a9a8fdc6c79c3b66393d04241865debf7e01));
-        vk.gamma_abc[4] = Pairing.G1Point(uint256(0x2507228b8b1e4898ead6fd2621b975d353cd4dd82dda93c74b13be3013d1186d), uint256(0x2d489514ab8c50e63d2c7665844f8d6b86f970328a158a9bdf94783da3b8fabd));
-        vk.gamma_abc[5] = Pairing.G1Point(uint256(0x150b292a13ac8dfde81d54291205034927b94249feeb893f5fed95d8cadb3bbd), uint256(0x1ebce5382ba66d424f6cb89042d01bde5b7dcd69ce66d439bd46e9aff7f1a83b));
-        vk.gamma_abc[6] = Pairing.G1Point(uint256(0x1e6ff9d866d78a5514f82b9f5aa331624bb4a0bd343045f984c622eefbe82139), uint256(0x1ffd815931abb838f6722c2e283584e8ece743dde77eab84174b9a9f94f2627a));
-        vk.gamma_abc[7] = Pairing.G1Point(uint256(0x17feb15ea6b9b6d0c73a91004b6e8882542d2e1b8f230f98285a8113f0c34daf), uint256(0x1404297d3a26c645a32e8fc2bc7824dd51b4f4c3e929e67a404ca5f3c6997f7a));
-        vk.gamma_abc[8] = Pairing.G1Point(uint256(0x0d56a16dfc3d167c9750908fe6edd75811d1e00675190eb53912fd8afc18bc02), uint256(0x1f46c7047c00c6b8a9f594e725ff10d3b6e8e6140a7e72a0df4251bd98247481));
+        vk.a = Pairing.G1Point(uint256(0x1e096e156562c363bc4de509882e0af9a94941c282bab25bd39d677b6294e26d), uint256(0x05b5246943d7c46f6066e6d99a62d373d0b5a40a4801b07cebaa5616656d66e9));
+        vk.b = Pairing.G2Point([uint256(0x04724765bb4bf31bc89dae59be2225a439ac91a58296c55148d311a63fe567ee), uint256(0x2afa5bbd58b2ff859216214e4402489ae5a75b38b29c0f2eab2f7ae4aa86a87d)], [uint256(0x0b8e91d54d4b1f972aebdab5ef485bc0dada762bfc612ec9a77b8f6cb77cb9b9), uint256(0x15b035072ebf2ade1d0120065b0f07c60f231a89df5b8004fddf4a896bd0b84f)]);
+        vk.gamma = Pairing.G2Point([uint256(0x047a10f8f9d54e0742dc2f619888a1f500403dd0fe532dd69c40b7f5633ad2ec), uint256(0x008b4a8a7eb16263fe21d95477e35fcaf8c8a27960030fac8ef10ee1e1a709a6)], [uint256(0x2e86ad520f73b47a9cc1d8deed0d5c0d775742cdb4f9c76d29d1c5d7bf24f7fd), uint256(0x091b67b433e00d2ddd3214d3ef0852f136ed449782954388ad62c2a4359c72e7)]);
+        vk.delta = Pairing.G2Point([uint256(0x19e66395beeceba4dc145ab9b5d5e7ccdb005f3026f68309b2b3414b1391bbb4), uint256(0x0f4940d241a2cbfedd14483bcd2cab397b2f64c80301c2027693064ab5abc1aa)], [uint256(0x0f4dccc25f169c4602fdb9d5515e6802a743c3003bda1396538346dbb2157ba9), uint256(0x09859713ed09a5d85b448c38f0254de2bb070a5a64687dbbbdc09c0b6595bce0)]);
+        vk.gamma_abc = new Pairing.G1Point[](5);
+        vk.gamma_abc[0] = Pairing.G1Point(uint256(0x0063146f61dbed2fb241e1db35aeb78a20cda909dbaa2edcc435db0aad2b1dd7), uint256(0x27502135ef83443bc613ce5a1058b2c9e1c421140739df2f6d281a4e5b81a4af));
+        vk.gamma_abc[1] = Pairing.G1Point(uint256(0x1b5894a633dd9afbd2867750443b7dbfc7912a81cadeca7c2da2e8a4c937d4a9), uint256(0x29badca26d965db8c8c1064b8c348624e131bd2518219f22a5ec16c835fc50db));
+        vk.gamma_abc[2] = Pairing.G1Point(uint256(0x241108d855396417f4128dd9bd97b47342bf84598c6d009c9b2c0605492873af), uint256(0x20b774592a944266c5a3b741b9688b7860b2919ff9b25fb080ef248fca110f95));
+        vk.gamma_abc[3] = Pairing.G1Point(uint256(0x1d9b1d1b71bee7458c7104db54abff7c9e5a308e2161b9286520b87e02523e5a), uint256(0x001f7e88eb01ed12776da65e7eaec5776a5e4d0acbea653e2a7f71d48861b3a0));
+        vk.gamma_abc[4] = Pairing.G1Point(uint256(0x15f770980a14bc2f7890a5938e87d8326123189578313a534433f3af8fc6af8e), uint256(0x2a6f967d5eb6a3e29b1003765ea2dd95e377eee5dca721490d350050f32b1031));
     }
     function verify(uint[] memory input, Proof memory proof) internal returns (uint) {
         uint256 snark_scalar_field = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
@@ -593,7 +589,7 @@ contract RollUp2Verifier {
             uint[2] memory a,
             uint[2][2] memory b,
             uint[2] memory c,
-            uint[8] memory input
+            uint[4] memory input
         ) public returns (bool r) {
         Proof memory proof;
         proof.a = Pairing.G1Point(a[0], a[1]);

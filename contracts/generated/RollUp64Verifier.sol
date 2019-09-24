@@ -540,7 +540,7 @@ library Pairing {
     }
 }
 
-contract RollUp64Verifier {
+contract Verifier {
     using Pairing for *;
     struct VerifyingKey {
         Pairing.G1Point a;
