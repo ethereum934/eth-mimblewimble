@@ -242,17 +242,19 @@ Test machine: Ryzen1700 (3GHz 8 Core) + DDR4 32Gb
 | Optimistic roll up 32 tx | 4,694,516 | 146,703    | 4.53 tx / sec |
 
 #### Circuit performance
-|                               | Gas consumption | Proof generation time |
-|-------------------------------|-----------------|-----------------------|
-| Deposit proof                 | 612,273         | 3 seconds             |
-| Withdraw proof                | 658,043         | 3.5 seconds           |
-| Range proof                   | 568,232         | 2 seconds             |
-| MMR Inclusion Proof           | 613,809         | 24 seconds            |
-| Mimblewimble Proof            | 975,399         | 9 seconds             |
-| MMR Roll up 8 items (4 txs)   | 1,392,269       | 1m 47s                |
-| MMR Roll up 16 items (8 txs)  | 2,127,267       | 3m 19s                |
-| MMR Roll up 32 items (16 txs) | 3,597,531       | 7m 20s                |
-| MMR Roll up 64 items (32 txs) | 6,541,946       | 17m 30s               |
+| Circuits                      | Constraint points | Gas consumption | Proof generation time |
+|-------------------------------|-------------------|-----------------|-----------------------|
+| Deposit proof                 | 29,140            | 612,273         | 3 seconds             |
+| Withdraw proof                | 588,910           | 658,043         | 3.5 seconds           |
+| Range proof                   | 19,679            | 568,232         | 2 seconds             |
+| MMR Inclusion Proof           | 399,644           | 613,809         | 24 seconds            |
+| Mimblewimble Proof            | 141,552           | 975,399         | 9 seconds             |
+| MMR Roll up 2 items (1 txs)   | 644,957           | 1,392,269       | 1m 47s                |
+| MMR Roll up 4 items (2 txs)   | 968,099           | 1,392,269       | 1m 47s                |
+| MMR Roll up 8 items (4 txs)   | 1,614,383         | 1,392,269       | 1m 47s                |
+| MMR Roll up 16 items (8 txs)  | 2,906,951         | 2,127,267       | 3m 19s                |
+| MMR Roll up 32 items (16 txs) | 5,492,087         | 3,597,531       | 7m 20s                |
+| MMR Roll up 64 items (32 txs) | 10,662,359        | 6,541,946       | 17m 30s               |
 
 ```shell
   Contract: Ethereum934
