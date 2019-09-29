@@ -6,7 +6,7 @@ Send ERC20s privately using Mimblewimble and zk-SNARKs!
 
 ## Summary
 
-Please check out technical details [here.](docs/technical-paper.md)
+Please check out technical details [here.](https://ethresear.ch/t/ethereum-9-send-erc20-privately-using-mimblewimble-and-zk-snarks/6217)
 
 1. Ethereum 9¾ uses **Mimblewimble transaction** and it prevents printing money out of thin air.
 1. With **spent tags(nullifier)**, Ethereum 9¾ completely hides where the inputs come from.
