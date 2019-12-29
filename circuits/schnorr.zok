@@ -1,0 +1,14 @@
+import "ecc/babyjubjubParams" as context
+import "ecc/edwardsScalarMult" as edwardsScalarMult
+import "utils/pack/nonStrictUnpack256" as unpack
+import "./ecStrictMul" as ecStrictMul
+import "./ecAdd" as ecAdd
+import "./constants/ZERO" as ZERO
+import "./constants/G" as G
+
+def main(field[2] sigScalar, field[2] sigPoint, field e, field[2] publicExcess) -> (field):
+  context = context()
+  field[2] eR = edwardsScalarMult(unpack(e), publicExcess, context)
+  ecStrictMul(sigScalar, G()) == ecAdd(sigPoint, eR)
+  return 1
+

@@ -1,0 +1,9 @@
+import "ecc/babyjubjubParams" as context
+import "ecc/edwardsScalarMult" as edwardsScalarMult
+import "utils/pack/nonStrictUnpack256" as unpack
+
+// Scalar field Fr is larger than the prime field Fq of zk snarks
+// This function is for when the given scalar field also belongs to Fq field
+def main(field fq, field[2] ecPoint) -> (field[2]):
+  context = context()
+  return edwardsScalarMult(unpack(fq), ecPoint, context)

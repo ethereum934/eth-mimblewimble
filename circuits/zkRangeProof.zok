@@ -1,0 +1,14 @@
+import "./constants/G" as G
+import "./constants/H" as H
+import "./constants/RANGE" as RANGE
+import "./ecMul" as ecMul
+import "./ecAdd" as ecAdd
+import "./lessThan" as lessThan
+
+def main(field y, private field r, private field v) -> (field):
+  field[2] rG  = ecMul(r, G())
+  field[2] vH  = ecMul(v, H())
+  field[2] pedersenCommitment = ecAdd(rG, vH)
+  1 == lessThan(v, RANGE())
+  y == pedersenCommitment[1]
+  return 1

@@ -1,0 +1,5 @@
+import "./mmrRollUp1" as mmrRollUp1
+
+def main(field root, field width, field[2] item, field newRoot, private field[16] xPeaks, private field[16] yPeaks) -> (field):
+    newRoot == mmrRollUp1(root, width, xPeaks, yPeaks, item)
+    return 1

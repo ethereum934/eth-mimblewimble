@@ -1,0 +1,15 @@
+import "ecc/babyjubjubParams" as context
+import "utils/pack/nonStrictUnpack256" as unpack
+import "utils/pack/pack256" as pack
+import "ecc/edwardsCompress" as edwardsCompress
+import "EMBED/unpack" as split
+import "./challengeHasher" as challengeHasher
+
+def main(field excessY, field sigPointY, field fee, field metadata) -> (field):
+  context = context()
+  field[254] arrExcess = split(excessY)
+  field[254] arrSigPoint = split(sigPointY)
+  field[254] arrFee = split(fee)
+  field[254] arrMetaData =  split(metadata)
+  field[2] e = challengeHasher([...arrExcess, ...arrSigPoint, ...arrFee, ...arrMetaData, 0])
+  return e[1]

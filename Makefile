@@ -125,7 +125,7 @@ hash-circuit: container-zokrates-pycrypto clear-container
 		--name zokrates-tmp \
 		ethereum-mw-zokrates-pycrypto \
 		create_challenge_circuit.py
-	@docker cp zokrates-tmp:/pycrypto/challengeHasher.code $(output)
+	@docker cp zokrates-tmp:/pycrypto/challengeHasher.zok $(output)
 	@docker rm zokrates-tmp
 
 clear-container:

@@ -1,0 +1,15 @@
+import "EMBED/unpack" as split
+import "../ecMul" as ecMul
+import "./peakBagging" as peakBagging
+import "./peakUpdate" as peakUpdate
+
+def main(field root, field width, field[16] xPeaks, field[16] yPeaks, field[128] xItems, field[128] yItems) -> (field):
+    // Check peak bagging
+    root == peakBagging(xPeaks, yPeaks)
+    // Update peaks
+    for field i in 0..128 do
+        xPeaks, yPeaks = peakUpdate(width, xPeaks, yPeaks, [xItems[i], yItems[i]])
+        width = width + 1
+    endfor
+    // Return peak bagging
+    return peakBagging(xPeaks, yPeaks)

@@ -1,0 +1,12 @@
+import "./constants/G" as G
+import "./constants/H" as H
+import "./ecMul" as ecMul
+import "./ecAdd" as ecAdd
+
+def main(field r, field v) -> (field):
+  field[2] rG  = ecMul(r, G())
+  field[2] vH  = ecMul(v, H())
+  field[2] pedersenCommitment = ecAdd(rG, vH)
+  field[2] spentTag = ecMul(r, pedersenCommitment)
+  field spentTagY = spentTag[1]
+  return spentTagY

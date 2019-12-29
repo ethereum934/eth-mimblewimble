@@ -1,0 +1,46 @@
+import "ecc/babyjubjubParams" as context
+import "./ecMul" as ecMul
+import "./ecAdd" as ecAdd
+import "./constants/G" as G
+import "./constants/H" as H
+import "./challenge" as challenge
+import "./schnorr" as schnorr
+import "./spentTag" as spentTag
+import "./lessThan" as lessThan
+import "./constants/RANGE" as RANGE
+
+def main(\
+	field fee, field metadata, field[2] tags, field[2] outputTXO, field[2] changeTXO, field[2] sigPoint, \
+	private field[2] excess, private field[2] sigScalar, private field[2] inputRandoms, private field[2] inputValues \
+) -> (field):
+  // Retrieve constants
+  RANGE = RANGE()
+  G = G()
+  H = H()
+
+  // Get transaction hash
+  field e = challenge(excess[1], sigPoint[1], fee, metadata)
+
+  // Check Schnorr sigScalar
+  1 == schnorr(sigScalar, sigPoint, e, excess)
+
+  // Fee should be less than 2^52
+  1 == lessThan(fee, RANGE)
+  1 == lessThan(inputValues[0], RANGE)
+  1 == lessThan(inputValues[1], RANGE)
+
+  // Get input TXO from r,v
+  field totalRandom = 0
+  field totalValue = 0
+
+  // Prove that the spentTag is derived from the inputKey
+  tags[0] == if tags[0] == 1 then 1 else spentTag(inputRandoms[0], inputValues[0]) fi
+  tags[1] == if tags[1] == 1 then 1 else spentTag(inputRandoms[1], inputValues[1]) fi
+  // Aggregate 2 TXOs
+  field[2] inputTXO1 = ecAdd(ecMul(inputRandoms[0], G), ecMul(inputValues[0], H))
+  field[2] inputTXO2 = ecAdd(ecMul(inputRandoms[1], G), ecMul(inputValues[1], H))
+  field[2] inputTXO = ecAdd(inputTXO1, inputTXO2)
+
+  // Secure that this transaction follows the Mimblewimble protocol
+  ecAdd(inputTXO, excess) == ecAdd(ecAdd(outputTXO, changeTXO), ecMul(fee, H()))
+  return 1

@@ -24,5 +24,5 @@ if __name__ == "__main__":
     hashed_bytes = hasher.hash_bits(concatenated_source)
     hashed = int.from_bytes(hashed_bytes.compress(), 'big')
     # print(hasher.dsl_code, end='') # This generates pedersen hash circuit code
-    hasher.write_dsl_code('challengeHasher.code')
-    print("Saved challengeHasher.code")
+    hasher.write_dsl_code('challengeHasher.zok')
+    print("Saved challengeHasher.zok")
