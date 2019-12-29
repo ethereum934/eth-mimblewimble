@@ -17,8 +17,11 @@ Please check out technical details [here.](https://ethresear.ch/t/ethereum-9-sen
 
 ## Pre-requisite
 
-Install docker and [configure](https://docs.docker.com/docker-for-mac/#advanced) to allow 9GB process.
+Install docker and [configure](https://docs.docker.com/docker-for-mac/#advanced) to allow at least 13GB memory.
 Install GNU Make & Python3 & Python virtualenv
+
+You can run some of the tests below without docker using `test-host...` instead of `test...` command below.
+In this case you will have to [install ZoKrates](https://zokrates.github.io/gettingstarted.html#one-line-install)
 
 ## Make commands
 
