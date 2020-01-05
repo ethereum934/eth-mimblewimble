@@ -17,6 +17,13 @@ container-zokrates-pycrypto: # Used for utils/create_challenge_circuit.py
 	$(info Make: build zokrates pycrypto container for py934)
 	@docker build -f containers/zokrates_pycrypto.dockerfile ./ -t ethereum-mw-zokrates-pycrypto
 
+clear-host:
+	$(info Make: erase ZoKrates output files)
+	@(rm out out.ztf proof.json proving.key verification.key witness || true) 2> /dev/null
+
+clear-circuit-image:
+	@(docker rmi ethereum-mw-zokrates || true) 2> /dev/null
+
 # -------------------- ZK Containers -------------------- #
 container-zk-deposit:
 	@docker build -f containers/zkDeposit.dockerfile ./ -t ethereum934/zk-deposit
@@ -61,18 +68,25 @@ container-zk-roll-up-128:
 	@docker build -f containers/zkRollUp128.dockerfile ./ -t ethereum934/zk-roll-up-128
 
 # -------------------- Commands for circuit -------------------- #
-test-circuits: container-circuit clear-container
+test-circuits: clear-host clear-circuit-image clear-container container-circuit
 	$(info Make: Run unit test for circuits)
 	@docker run\
 		--name zokrates-tmp \
 		ethereum-mw-zokrates \
 		/bin/bash -c "\
-		./zokrates compile -i tests/circuits/unitTest.code;\
-		./zokrates setup;\
-		./zokrates compute-witness;\
+		./zokrates compile --light -i tests/circuits/unitTest.zok;\
+		./zokrates setup --light;\
+		./zokrates compute-witness --light;\
 		./zokrates generate-proof;\
 		"
 	@docker rm zokrates-tmp
+
+test-host-circuits:
+	$(info Make: Run unit test for circuits)
+	@zokrates compile --light -i tests/circuits/unitTest.zok
+	@zokrates setup --light
+	@zokrates compute-witness --light
+	@zokrates generate-proof
 
 verifier: container-circuit clear-container
 	$(info Make: compile circuits)
@@ -125,7 +139,7 @@ hash-circuit: container-zokrates-pycrypto clear-container
 		--name zokrates-tmp \
 		ethereum-mw-zokrates-pycrypto \
 		create_challenge_circuit.py
-	@docker cp zokrates-tmp:/pycrypto/challengeHasher.code $(output)
+	@docker cp zokrates-tmp:/pycrypto/challengeHasher.zok $(output)
 	@docker rm zokrates-tmp
 
 clear-container:

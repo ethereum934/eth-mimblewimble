@@ -1,0 +1,18 @@
+import "EMBED/unpack" as split
+import "./to16bits" as to16bits
+import "../ecMul" as ecMul
+import "../constants/G" as G
+import "../constants/powerOfTwo16" as powerOfTwo16
+
+def main(field[16] xPeaks, field[16] yPeaks) -> (field):
+    two = powerOfTwo16()
+    root = G()
+    field width = 0
+    for field i in 0..16 do
+        // Index starts from the right-most bit
+        field index = 15- i
+        root = ecMul(yPeaks[index], root)
+        width = if xPeaks[index] == 0 then width else width + two[i] fi
+    endfor
+    root = ecMul(width, root)
+    return root[1]

@@ -1,0 +1,8 @@
+import "./constants/RANGE" as RANGE
+import "./spentTag" as spentTag
+import "./lessThan" as lessThan
+
+def main(field tag, field v, private field r) -> (field):
+  tag == spentTag(r, v)
+  1 == lessThan(v, RANGE())
+  return 1

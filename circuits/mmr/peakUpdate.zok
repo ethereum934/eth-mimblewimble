@@ -1,0 +1,31 @@
+import "EMBED/unpack" as split
+import "../ecMul" as ecMul
+import "./to16bits" as to16bits
+
+def main(field width, field[16] xPeaks, field[16] yPeaks, field[2] item) -> (field[16], field[16]):
+    field[16] prevMountainMap = to16bits(width)
+    field[16] newMountainMap = to16bits(width + 1)
+    field[2] leafNode = ecMul(width+1, item)
+
+    field[2] cursorNode = leafNode
+    field[2] cursorCandidate = cursorNode
+    field[2] prevPeakOrNewPeak = [0, 1]
+
+    for field i in 0..16 do
+        // Index starts from the right-most bit
+        field index = 15 - i
+        // When the new mountain map indicates the index is a peak
+        // 1. Get a newly multiplied point and move cursor
+        // 2. Update the peak map
+        // 2-1. When the index is a peak for both mountains, use prev mountain's peak
+        // 2-2. In other case, use the newly multiplied point as the new peak
+        cursorNode = ecMul(yPeaks[index], cursorNode)
+        //cursorCandidate = ecMul(yPeaks[index], cursorNode)
+        //cursorNode = if newMountainMap[index] == 1 then cursorCandidate else cursorNode fi
+        prevPeakOrNewPeak[0] = if prevMountainMap[index] == 1 then xPeaks[index] else cursorNode[0] fi
+        prevPeakOrNewPeak[1] = if prevMountainMap[index] == 1 then yPeaks[index] else cursorNode[1] fi
+        xPeaks[index] = if newMountainMap[index] == 1 then prevPeakOrNewPeak[0] else 0 fi
+        yPeaks[index] = if newMountainMap[index] == 1 then prevPeakOrNewPeak[1] else 1 fi
+    endfor
+
+    return xPeaks, yPeaks

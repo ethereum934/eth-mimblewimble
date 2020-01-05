@@ -1,0 +1,6 @@
+import "ecc/babyjubjubParams" as context
+import "ecc/edwardsAdd" as edwardsAdd
+
+def main(field[2] p, field[2] q) -> (field[2]):
+  context = context()
+  return edwardsAdd(p, q, context)

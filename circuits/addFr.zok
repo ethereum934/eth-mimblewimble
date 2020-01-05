@@ -1,0 +1,9 @@
+import "./constants/FR_EXCESS" as FR_EXCESS
+
+def main(field[2] a, field[2] b) -> (field[2]):
+    field sum_0 = a[0]+b[0]
+    field sum_1 = a[1]+b[1]
+    field p0 = if sum_0 >= a[0] then sum_0 else sum_0 - FR_EXCESS fi
+    field p1 = if sum_1 >= a[1] then sum_1 else sum_1 - FR_EXCESS fi
+	return [p0, p1]
+

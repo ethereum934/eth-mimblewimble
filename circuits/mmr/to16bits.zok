@@ -1,0 +1,7 @@
+import "EMBED/unpack" as split
+
+def main(field size) -> (field[16]):
+    field[254] toBits = split(size)
+    toBits[0..238] == [0; 238]
+    field[16] mountainMap = toBits[238..254]
+    return mountainMap
