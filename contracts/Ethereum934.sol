@@ -176,7 +176,7 @@ contract Ethereum934 {
         // Update root & width
         require(root == 1 || pool.mmrRoots[root], "Root does not exist");
         pool.mmrRoots[newRoot] = true;
-        require(pool.mmrWidths[root] + 2 < 66536, "This 16 bit MMR only contains 66535 items");
+        require(pool.mmrWidths[root] + 2 < 65536, "This 16 bit MMR only contains 66535 items");
         pool.mmrWidths[newRoot] = pool.mmrWidths[root] + 2;
         delete pool.mmrRoots[root];
         delete pool.mmrWidths[root];
@@ -223,7 +223,7 @@ contract Ethereum934 {
         // Update root & width
         require(root == 1 || pool.mmrRoots[root], "Root does not exist");
         pool.mmrRoots[newRoot] = true;
-        require(pool.mmrWidths[root] + 4 < 66536, "This 16 bit MMR only contains 66535 items");
+        require(pool.mmrWidths[root] + 4 < 65536, "This 16 bit MMR only contains 66535 items");
         pool.mmrWidths[newRoot] = pool.mmrWidths[root] + 4;
         delete pool.mmrRoots[root];
         delete pool.mmrWidths[root];
@@ -271,7 +271,7 @@ contract Ethereum934 {
         // Update root & width
         require(root == 1 || pool.mmrRoots[root], "Root does not exist");
         pool.mmrRoots[newRoot] = true;
-        require(pool.mmrWidths[root] + 8 < 66536, "This 16 bit MMR only contains 66535 items");
+        require(pool.mmrWidths[root] + 8 < 65536, "This 16 bit MMR only contains 66535 items");
         pool.mmrWidths[newRoot] = pool.mmrWidths[root] + 8;
         delete pool.mmrRoots[root];
         delete pool.mmrWidths[root];
@@ -292,7 +292,7 @@ contract Ethereum934 {
         ERC20Pool storage pool = pools[erc20];
         bytes32 id = keccak256(msg.data);
         uint16 newWidth = pool.mmrWidths[root] + uint16(mwTxs.length * 2);
-        require(newWidth < 66536, "This 16 bit MMR only contains 66535 items");
+        require(newWidth < 65536, "This 16 bit MMR only contains 66535 items");
 
         uint fee = 0;
         uint[] memory tags = new uint[](qty);
