@@ -56,6 +56,6 @@
     ]
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^2.3.0"
+    "@openzeppelin/contracts": "^4.4.2"
   }
 }
